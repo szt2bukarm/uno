@@ -7,12 +7,18 @@ const useStore = create((set) => ({
     playersCards: {
     },
     expandCards: false,
+    showColorChanger: false,
+    currentPlayer: 0,
+    numberOfPlayers: 0,
+    setNumberOfPlayers: (value) => set({ numberOfPlayers: value }),
+    setCurrentPlayer: (value) => set({ currentPlayer: value }),
+    setShowColorChanger: (value) => set({ showColorChanger: value }),
     setExpandCards: (value) => set({ expandCards: value }),
     setPlayedCards: (playedCard) => set((state) => {
         const newKey = Object.keys(state.playedCards).length;
         const newPlayedCards = {
             ...state.playedCards,
-            [newKey]: { card: playedCard.card, type: playedCard.color,x:playedCard.x,y:playedCard.y },
+            [newKey]: { type: playedCard.type, card: playedCard.card,x:playedCard.x,y:playedCard.y },
         };
         return { playedCards: newPlayedCards };
     }),

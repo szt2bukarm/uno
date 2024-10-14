@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import Card from './Card'
 import useStore from '../store.js'
@@ -21,15 +21,31 @@ const Wrapper = styled.div`
 `
 
 
-interface Props {}
 
-function PlayedCards(props: Props) {
-    const {} = props
+function PlayedCards() {
     const { playedCards } = useStore();
     const cardsRef = useRef<HTMLDivElement>([]);
+    const [newMatch,setNewMatch] = useState(true);
 
     useEffect(() => {
-        if (!cardsRef.current) return
+        console.log(playedCards);
+        if (newMatch) {
+            setNewMatch(false);
+            gsap.set(cardsRef.current, {
+                y: 100,
+                x: 0,
+                opacity: 0,
+            })
+            gsap.to(cardsRef.current, {
+                scale: 1,
+                y: 0,
+                opacity: 1,
+                duration: 0.3,
+                delay: 1.2
+            })    
+        }
+
+        if (!newMatch) {
         const lastPlayedCard = cardsRef.current[cardsRef.current.length - 1];
         const lastPlayedCardData = Object.values(playedCards)[Object.values(playedCards).length - 1];
         
@@ -74,12 +90,12 @@ function PlayedCards(props: Props) {
                 filter: `drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.3))`
             }
         })
-
+    }
     },[playedCards])
 
     return (
         <Wrapper> 
-          {Object.values(playedCards).length > 0 && Object.values(playedCards).map((c,i) => <Card key={i} absolute={true} card={playedCards[i].card} color={playedCards[i].type} ref={(el) => cardsRef.current[i] = el}/>) }
+          {Object.values(playedCards).length > 0 && Object.values(playedCards).map((c,i) => <Card key={i} absolute={true} type={playedCards[i].type} card={playedCards[i].card} ref={(el) => cardsRef.current[i] = el}/>) }
           </Wrapper>
     )
 }

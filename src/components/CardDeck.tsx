@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Card from './Card'
 import gsap from 'gsap'
-import styled, { css } from 'styled-components'
+import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
+import styled from 'styled-components'
 import useStore from '../store.js'
+gsap.registerPlugin(MotionPathPlugin);
 
 
 const Wrapper = styled.div`
@@ -27,7 +29,7 @@ function CardDeck(props: Props) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [startX,setStartX] = useState(0)
     const [isDragging,setIsDragging] = useState(false)
-    const { setPlayedCards,setPlayersCards,playersCards,expandCards,setExpandCards } = useStore();
+    const { setPlayedCards,setPlayersCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger } = useStore();
     const newMatch = useRef(true);
 
 
@@ -118,9 +120,40 @@ function CardDeck(props: Props) {
         }
       }
 
+      const cardChecker = (type,card) => {
+        const lastCard = playedCards[Object.keys(playedCards).length - 1];
+        if (card == "colorchange" || card == "plus4") {
+          console.log("asd");
+          setShowColorChanger(true);
+        }
+        if (lastCard?.type === type) return true;
+        if (lastCard?.card === card) return true;
+        if (type == "common") return true;
+        console.log("different");
+        return false
+      }
+
       const clickHandler = (e: React.MouseEvent) => {
-        console.log(cardsRef.current);
         const target = e.currentTarget;
+        const index = cardsRef.current.findIndex(c => c === target);
+        const check =cardChecker(playersCards[index]?.type, playersCards[index]?.card);
+        if (!check) {
+          gsap.to(target, {
+            motionPath: {
+              path: [
+                { x: 0},
+                { x: -2,},
+                { x: 2},
+                { x: -2},
+                { x: 2,},
+                { x: 0},
+              ]},
+              duration: 0.5,
+            }
+          )
+          return;
+        };
+
         const clientX = e.clientX;
         const clientY = e.clientY;
         
@@ -144,12 +177,10 @@ function CardDeck(props: Props) {
           scale: 1.2,
           duration: 0.1,
             onComplete: () => {
-              console.log(target);
-            const index = cardsRef.current.findIndex(c => c === target);
             cardsRef.current.filter((c, i) => c !== null);
             setPlayedCards({
+              type: playersCards[index]?.type,
               card: playersCards[index]?.card,
-              color: playersCards[index]?.type,
               x: clientX,
               y: clientY,
             });
@@ -174,7 +205,7 @@ function CardDeck(props: Props) {
 
     return (
         <Wrapper ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
-          {Object.values(playersCards).length > 0 && Object.values(playersCards).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} card={playersCards[i].card} color={playersCards[i].type} ref={(el) => cardsRef.current[i] = el}/>)}
+          {Object.values(playersCards).length > 0 && Object.values(playersCards).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={playersCards[i].type} card={playersCards[i].card} ref={(el) => cardsRef.current[i] = el}/>)}
         </Wrapper>
     )
 }

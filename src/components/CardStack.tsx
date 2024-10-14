@@ -1,13 +1,13 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import useStore from '../store.js'
 gsap.registerPlugin(MotionPathPlugin);
 
-const cards = ["0","1","2","3","4","5","6","7","8","9","reverse","block"]
+const cards = ["0","1","2","3","4","5","6","7","8","9","reverse","block","plus2"]
 const types = ["red","blue","green","yellow"]
-
+const common = ["plus4","colorchange"]
 
 const Wrapper = styled.div`
     position: absolute;
@@ -92,12 +92,37 @@ function CardStack(props: Props) {
     const stackRef = useRef<HTMLDivElement>(null);
     const { setPlayersCards, playersCards,setExpandCards } = useStore();
 
+    useEffect(() => {
+        gsap.set(stackRef.current, {
+            scale: 0.8,
+            opacity: 0
+        })
+        gsap.to(stackRef.current, {
+            scale: 1,
+            opacity: 1,
+            duration: 0.3,
+            delay: 1.2
+        })
+    }, [])
+
     const pullCard = (e: React.MouseEvent) => {
-        const randomColor = types[Math.floor(Math.random() * types.length)];
-        const randomCard = cards[Math.floor(Math.random() * cards.length)];
+        let randomType = "";
+        let randomCard = "";
+        const cardTypeChance = Math.floor(Math.random() * 20); 
+        if (cardTypeChance < 15) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            const card = cards[Math.floor(Math.random() * cards.length)];
+            randomType = type;
+            randomCard = card;
+        } else {
+            const card = common[Math.floor(Math.random() * common.length)];
+            randomType = "common";
+            randomCard = card;
+        }
+
         setExpandCards(true);
         setPulledCards((prevPulledCards) => {
-            const newPulledCards = [...prevPulledCards, { type: randomColor, card: randomCard }];
+            const newPulledCards = [...prevPulledCards, { type: randomType, card: randomCard }];
             AnimatePulledCard(newPulledCards);
             return newPulledCards;
         });    

@@ -53,27 +53,29 @@ const Back = styled.img`
 
 
 interface CardProps {
+    type: string;
     card: string;
-    color: string;
     onClick: () => void;
     absolute: boolean;
   }
   
-  const Card = forwardRef<HTMLDivElement, CardProps>(({ card, color, onClick,absolute = false }, ref) => {
+  const Card = forwardRef<HTMLDivElement, CardProps>(({ type, card, onClick,absolute = false }, ref) => {
     const shadowRef = useRef<HTMLDivElement>(null);
     const frontRef = useRef<HTMLImageElement>(null);
     const backRef = useRef<HTMLImageElement>(null);
-    const cardRef = useRef<HTMLDivElement>(null);  
+    const cardRef = useRef<HTMLDivElement>(null);
+    const { playedCards } = useStore();
+
 
     const tiltHandler = (e: any) => {
       const wrapper = e.currentTarget.getBoundingClientRect();
   
       const x = (e.clientX - (wrapper.left + wrapper.width / 2)) / 6;
-      const y = (e.clientY - (wrapper.top + wrapper.height / 2)) / 20;
+      const y = (e.clientY - (wrapper.top + wrapper.height / 2)) / 6;
   
       gsap.to(cardRef.current, {
         rotateX: -y,
-        rotateY: x,   
+        rotateY: x,
         transformPerspective: 600,
       });
       gsap.to(cardRef.current, {
@@ -111,7 +113,7 @@ interface CardProps {
         <div style={{position: absolute ? 'absolute' : 'relative', boxShadow: absolute ? '0px 0px 20px rgba(0, 0, 0, 0.5)' : 'none'}} ref={ref} onClick={onClick}>
         <Wrapper ref={cardRef} onMouseMove={tiltHandler} onMouseLeave={onLeave}>
         <Shadow ref={shadowRef} />
-        <Front ref={frontRef} src={`cards/${color}/${card}.png`} className="front" />
+        <Front ref={frontRef} src={`cards/${type}/${card}.png`} className="front" />
         <Back ref={backRef} src={`cards/1.png`} className="back" />
       </Wrapper>
         </div>
