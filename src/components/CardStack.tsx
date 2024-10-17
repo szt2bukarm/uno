@@ -90,7 +90,7 @@ function CardStack(props: Props) {
     const frontRef = useRef<HTMLImageElement>([]);
     const backRef = useRef<HTMLImageElement>([]);
     const stackRef = useRef<HTMLDivElement>(null);
-    const { setPlayersCards, playersCards,setExpandCards } = useStore();
+    const { setPlayersCards, playersCards,setExpandCards,showPlus4Confirm } = useStore();
 
     useEffect(() => {
         gsap.set(stackRef.current, {
@@ -106,6 +106,7 @@ function CardStack(props: Props) {
     }, [])
 
     const pullCard = (e: React.MouseEvent) => {
+        if (showPlus4Confirm) return;
         let randomType = "";
         let randomCard = "";
         const cardTypeChance = Math.floor(Math.random() * 20); 
@@ -179,9 +180,9 @@ function CardStack(props: Props) {
     }, [pulledCards])
 
     return <Wrapper>
-        <InnerWrapper>
-            <CardAbosolute ref={stackRef} onClick={(e) => pullCard(e)}>
-                <CardInner>
+        <InnerWrapper >
+            <CardAbosolute ref={stackRef} onClick={(e) => pullCard(e)} >
+                <CardInner style={{pointerEvents: showPlus4Confirm ? "none" : "all"}}>
                     <Back src={`cards/1.png`} />
                 </CardInner>
             </CardAbosolute>
