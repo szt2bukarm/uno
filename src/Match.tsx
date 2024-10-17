@@ -5,7 +5,10 @@ import PlayedCards from './components/PlayedCards'
 import useStore from './store'
 import CardStack from './components/CardStack'
 import ColorSwitcher from './components/ColorSwitcher'
-import EnemyPlayer from './components/EnemyPlayer'
+import EnemyPlayer from './components/EnemyPlayerWrapper'
+import useCardgenerator from './utils/Cardgenerator';
+import EnemyPlayerWrapper from './components/EnemyPlayerWrapper'
+import Plus4Confirm from './components/Plus4Confirm'
 
 const types = ["red","blue","green","yellow"]
 const cards = ["0","1","2","3","4","5","6","7","8","9","reverse","block","plus2"]
@@ -42,24 +45,10 @@ interface Props {}
 
 function Match(props: Props) {
     const {} = props
-    const { setPlayersCards,setPlayedCards, playedCards, playersCards,showColorChanger } = useStore();
-
-
+    const { setPlayersCards,setPlayedCards, playedCards, playersCards,showColorChanger, showPlus4Confirm } = useStore();
+    const cardObject = useCardgenerator();
 
     const newGame = () => {
-        const cardObject = {}
-        for (let i = 0; i < 7; i++) {
-            const cardTypeChance = Math.floor(Math.random() * 20); 
-            if (cardTypeChance < 18) {
-                const type = types[Math.floor(Math.random() * types.length)];
-                const card = cards[Math.floor(Math.random() * cards.length)];
-                console.log(type,card);
-                cardObject[i] = { type, card };    
-            } else {
-                const card = common[Math.floor(Math.random() * common.length)];
-                cardObject[i] = { type: "common", card };
-            }
-        }
         console.log(Object.values(cardObject));
         setPlayersCards(cardObject);
         
@@ -72,12 +61,13 @@ function Match(props: Props) {
     return (
         <Wrapper style={{background: colors[playedCards[Object.values(playedCards).length - 1]?.type]}}>
             <RadialShadow />
-            {Object.values(playersCards).length > 0 && <CardDeck /> }
+            {Object.values (playersCards).length > 0 && <CardDeck /> }
             {Object.values(playedCards).length > 0 && <PlayedCards />}
             {Object.values(playersCards).length > 0 && <CardStack />}
             {showColorChanger && <ColorSwitcher />}
-            <EnemyPlayer />
-            <button onClick={newGame} style={{zIndex: 919}}>New Game</button>
+            {Object.values(playersCards).length > 0 && <EnemyPlayerWrapper />}
+            {/* {showPlus4Confirm && <Plus4Confirm />} */}
+            <button onClick={newGame} style={{zIndex: 999}}>New Game</button>
         </Wrapper>
     )
 }

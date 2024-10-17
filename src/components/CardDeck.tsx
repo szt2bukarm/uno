@@ -4,10 +4,26 @@ import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import styled from 'styled-components'
 import useStore from '../store.js'
+import Plus4Confirm from './Plus4Confirm.js'
 gsap.registerPlugin(MotionPathPlugin);
 
-
 const Wrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9;
+  pointer-events: none;
+`
+
+const InnerWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`
+
+const CardWrapper = styled.div`
     /* width: 100vw;
     height: 100vh; */
     position: absolute;
@@ -21,6 +37,9 @@ const Wrapper = styled.div`
     z-index: 2;
 `
 
+
+
+
 interface Props {}
 
 function CardDeck(props: Props) {
@@ -29,7 +48,7 @@ function CardDeck(props: Props) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [startX,setStartX] = useState(0)
     const [isDragging,setIsDragging] = useState(false)
-    const { setPlayedCards,setPlayersCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger } = useStore();
+    const { setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger } = useStore();
     const newMatch = useRef(true);
 
 
@@ -68,7 +87,7 @@ function CardDeck(props: Props) {
               gsap.to(c, {
                 rotate: `${(base + i) * 5}deg`,
                 y: Math.abs(base + i) * 20 + 100,
-                x: (base + i) * -50,
+                x: (base + i) * -50 + (cardsRef.current.length % 2 == 0 ? -30 : 0),
                 duration: 0.5,
                 ease: 'circ.inOut',
               });
@@ -120,11 +139,78 @@ function CardDeck(props: Props) {
         }
       }
 
+      const PlacePlus4 = () => {
+        const plus4card = Object.values(playersCards).findIndex(c => c.card === "plus4");
+        if (plus4card !== -1) {
+          const target = cardsRef.current[plus4card];
+          
+          if (target) {
+            const rect = target.getBoundingClientRect(); 
+      
+            gsap.to(target, {
+              css: {
+                filter: `drop-shadow(0px 0px 30px rgb(0, 0, 0))`,
+              },
+            });
+      
+            gsap.to(target, {
+              x: 0, 
+              y: 0,
+              scale: 1.2,
+              duration: 0.1,
+              onComplete: () => {
+                cardsRef.current = cardsRef.current.filter((c) => c !== null);
+                setPlayedCards({
+                  type: playersCards[plus4card]?.type,
+                  card: playersCards[plus4card]?.card,
+                  x: rect.left + rect.width / 2, 
+                  y: rect.top + rect.height / 2, 
+                });
+      
+                gsap.set(target, {
+                  x: 0,
+                  y: 0,
+                  scale: 1,
+                });
+      
+                gsap.set(target, {
+                  css: {
+                    filter: `drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.38))`,
+                  },
+                });
+      
+                const newCards = Object.values(playersCards).filter((_, i) => i !== plus4card);
+                setPlayersCards(newCards);
+                setExpandCards(false);
+
+                const numberOfCards = Object.values(playersCards).filter(c => c.card == "plus4").length;
+                if (numberOfCards < 2) {
+                  setShowColorChanger(true);
+                  setShowPlus4Confirm(false);
+                }
+                if (numberOfCards >= 2) {
+                  setShowPlus4Confirm(true);
+                }
+              }
+            });
+          }
+        }
+      };
+
       const cardChecker = (type,card) => {
         const lastCard = playedCards[Object.keys(playedCards).length - 1];
-        if (card == "colorchange" || card == "plus4") {
-          console.log("asd");
+        if (card == "colorchange") {
           setShowColorChanger(true);
+        }
+        if (card == "plus4") {
+          const numberOfCards = Object.values(playersCards).filter(c => c.card == "plus4").length;
+          if (numberOfCards < 2) {
+            setShowColorChanger(true);
+            setShowPlus4Confirm(false);
+          }
+          if (numberOfCards >= 2) {
+            setShowPlus4Confirm(true);
+          }
         }
         if (lastCard?.type === type) return true;
         if (lastCard?.card === card) return true;
@@ -155,6 +241,7 @@ function CardDeck(props: Props) {
         };
 
         const clientX = e.clientX;
+        console.log(clientX - window.innerWidth / 2);
         const clientY = e.clientY;
         
         const rect = target.getBoundingClientRect();
@@ -204,9 +291,14 @@ function CardDeck(props: Props) {
       };
 
     return (
-        <Wrapper ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
+      <Wrapper ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
+          <InnerWrapper>
+            <CardWrapper>
           {Object.values(playersCards).length > 0 && Object.values(playersCards).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={playersCards[i].type} card={playersCards[i].card} ref={(el) => cardsRef.current[i] = el}/>)}
-        </Wrapper>
+            </CardWrapper>
+            {showPlus4Confirm && <Plus4Confirm onClick={PlacePlus4}/>}
+          </InnerWrapper>
+      </Wrapper>
     )
 }
 

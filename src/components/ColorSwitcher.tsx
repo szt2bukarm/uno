@@ -13,7 +13,7 @@ const Wrapper = styled.div`
     justify-content: center;
     align-items: center;
     background-color: #00000090;
-    z-index: 9;
+    z-index: 99;
 `
 
 const Wheel = styled.div`

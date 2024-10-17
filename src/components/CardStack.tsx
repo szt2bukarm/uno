@@ -16,7 +16,7 @@ const Wrapper = styled.div`
     width: 100%;
     height: 100vh;
     pointer-events: none;
-    z-index: 5;
+    z-index: 10;
 `
 
 const InnerWrapper = styled.div`
@@ -161,13 +161,22 @@ function CardStack(props: Props) {
                     duration: 0.2,
                     delay: 1.5,
                     onComplete: () => {
-                        console.log(pulledCards);
                         setPlayersCards(playersCards);
                         setExpandCards(false);
                     }
                 })
         }, 1);
     }
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setPulledCards([]);
+        }, 2500)
+
+        return () => {
+            clearTimeout(timeout);
+        }
+    }, [pulledCards])
 
     return <Wrapper>
         <InnerWrapper>

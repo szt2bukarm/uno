@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef,memo } from "react";
 import styled from "styled-components";
 import gsap from "gsap";
 import useStore from "../store";
@@ -7,18 +7,11 @@ const Wrapper = styled.div`
   position: relative;
   width: 135px;
   height: 225px;
-  /* perspective: 100px; */
   border-radius: 20px;
   overflow: hidden;
   transition: all 0.05s;
   user-select: none;
-  /* &:hover .front{
-        transform: rotateY(180deg);
-    }
-
-    &:hover .back{
-        transform: rotateY(360deg);
-    } */
+  pointer-events: all;
 `;
 
 const Shadow = styled.div`
@@ -35,9 +28,8 @@ const Front = styled.img`
   left: 0;
   width: 100%;
   height: 100%;
-  /* backface-visibility: hidden; */
   backface-visibility: hidden;
-  border-radius: 20px; /* Adding border-radius to match the parent */
+  border-radius: 20px;
   transform: rotateY(0deg);
 `;
 
@@ -51,28 +43,29 @@ const Back = styled.img`
   transform: rotateY(180deg);
 `;
 
-
 interface CardProps {
-    type: string;
-    card: string;
-    onClick: () => void;
-    absolute: boolean;
-  }
-  
-  const Card = forwardRef<HTMLDivElement, CardProps>(({ type, card, onClick,absolute = false }, ref) => {
+  type: string;
+  card: string;
+  onClick: () => void;
+  absolute: boolean;
+  allowHover: boolean;
+}
+
+const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ type, card, onClick, absolute = false, allowHover = true }, ref) => {
     const shadowRef = useRef<HTMLDivElement>(null);
     const frontRef = useRef<HTMLImageElement>(null);
     const backRef = useRef<HTMLImageElement>(null);
     const cardRef = useRef<HTMLDivElement>(null);
     const { playedCards } = useStore();
 
-
     const tiltHandler = (e: any) => {
+      if (!allowHover) return;
       const wrapper = e.currentTarget.getBoundingClientRect();
-  
+
       const x = (e.clientX - (wrapper.left + wrapper.width / 2)) / 6;
       const y = (e.clientY - (wrapper.top + wrapper.height / 2)) / 6;
-  
+
       gsap.to(cardRef.current, {
         rotateX: -y,
         rotateY: x,
@@ -89,7 +82,7 @@ interface CardProps {
         },
       });
     };
-  
+
     const onLeave = () => {
       gsap.to(cardRef.current, {
         rotateX: 0,
@@ -107,19 +100,35 @@ interface CardProps {
       });
     };
 
-
-  
     return (
-        <div style={{position: absolute ? 'absolute' : 'relative', boxShadow: absolute ? '0px 0px 20px rgba(0, 0, 0, 0.5)' : 'none'}} ref={ref} onClick={onClick}>
+      <div
+        style={{
+          position: absolute ? "absolute" : "relative",
+          boxShadow: absolute ? "0px 0px 20px rgba(0, 0, 0, 0.5)" : "none",
+        }}
+        ref={ref}
+        onClick={onClick}
+      >
         <Wrapper ref={cardRef} onMouseMove={tiltHandler} onMouseLeave={onLeave}>
-        <Shadow ref={shadowRef} />
-        <Front ref={frontRef} src={`cards/${type}/${card}.png`} className="front" />
-        <Back ref={backRef} src={`cards/1.png`} className="back" />
-      </Wrapper>
-        </div>
-
+          <Shadow ref={shadowRef} />
+          <Front
+            ref={frontRef}
+            src={`cards/${type}/${card}.png`}
+            className="front"
+          />
+          <Back ref={backRef} src={`cards/1.png`} className="back" />
+        </Wrapper>
+      </div>
     );
-  });
-  
-  export default Card;
-  
+  }
+);
+
+// Memoizing the Card component
+export default memo(Card, (prevProps, nextProps) => {
+  return (
+    prevProps.type === nextProps.type &&
+    prevProps.card === nextProps.card &&
+    prevProps.absolute === nextProps.absolute &&
+    prevProps.allowHover === nextProps.allowHover
+  );
+});
