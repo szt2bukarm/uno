@@ -65,7 +65,7 @@ const Front = styled.img`
   height: 100%;
   /* backface-visibility: hidden; */
   backface-visibility: hidden;
-  border-radius: 20px; /* Adding border-radius to match the parent */
+  border-radius: 20px; 
   transform: rotateY(180deg);
 `;
 
@@ -90,7 +90,7 @@ function CardStack(props: Props) {
     const frontRef = useRef<HTMLImageElement>([]);
     const backRef = useRef<HTMLImageElement>([]);
     const stackRef = useRef<HTMLDivElement>(null);
-    const { setPlayersCards, playersCards,setExpandCards,showPlus4Confirm } = useStore();
+    const { setPlayersCards, playersCards,setExpandCards,showPlus4Confirm,currentPlayer,setCurrentPlayer,numberOfPlayers } = useStore();
 
     useEffect(() => {
         gsap.set(stackRef.current, {
@@ -129,6 +129,24 @@ function CardStack(props: Props) {
         });    
     }
 
+    const getNextPlayer = () => {
+        if (currentPlayer == numberOfPlayers-1) return 0;
+        return currentPlayer+1;
+    }
+
+    const checkPlayersCards = () => {
+        const commonIndex = Object.values(playersCards).findIndex(c => c.type == "common");
+        const cardIndex = Object.values(playersCards).findIndex(c => c.card == c);
+        const typeIndex = Object.values(playersCards).findIndex(c => c.type == c);
+        if (commonIndex != -1 || cardIndex != -1 || typeIndex != -1) {
+            return;
+        } else {
+            setCurrentPlayer(getNextPlayer());
+            setExpandCards(false);
+            return;
+        }
+    }
+
     const AnimatePulledCard = (newPulledCards) => {
         const stackPosition = stackRef.current.getBoundingClientRect();
         playersCards[Object.keys(playersCards).length] = newPulledCards[newPulledCards.length - 1];
@@ -163,7 +181,7 @@ function CardStack(props: Props) {
                     delay: 1.5,
                     onComplete: () => {
                         setPlayersCards(playersCards);
-                        setExpandCards(false);
+                        checkPlayersCards();
                     }
                 })
         }, 1);

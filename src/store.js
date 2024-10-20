@@ -10,7 +10,7 @@ const useStore = create((set) => ({
     showColorChanger: false,
     showPlus4Confirm: false,
     currentPlayer: 0,
-    numberOfPlayers: 2,
+    numberOfPlayers: 8,
     setShowPlus4Confirm: (value) => set({ showPlus4Confirm: value }),
     setNumberOfPlayers: (value) => set({ numberOfPlayers: value }),
     setCurrentPlayer: (value) => set({ currentPlayer: value }),

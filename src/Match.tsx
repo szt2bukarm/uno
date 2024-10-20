@@ -11,8 +11,7 @@ import EnemyPlayerWrapper from './components/EnemyPlayerWrapper'
 import Plus4Confirm from './components/Plus4Confirm'
 
 const types = ["red","blue","green","yellow"]
-const cards = ["0","1","2","3","4","5","6","7","8","9","reverse","block","plus2"]
-const common = ["plus4","colorchange"]
+const cards = ["0","1","2","3","4","5","6","7","8","9"]
 
 const Wrapper = styled.div`
     position: relative;

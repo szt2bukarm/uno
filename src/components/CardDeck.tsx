@@ -48,7 +48,7 @@ function CardDeck(props: Props) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [startX,setStartX] = useState(0)
     const [isDragging,setIsDragging] = useState(false)
-    const { setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger } = useStore();
+    const { setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
 
 
@@ -201,28 +201,46 @@ function CardDeck(props: Props) {
         const lastCard = playedCards[Object.keys(playedCards).length - 1];
         if (card == "colorchange") {
           setShowColorChanger(true);
+          return true;
         }
         if (card == "plus4") {
           const numberOfCards = Object.values(playersCards).filter(c => c.card == "plus4").length;
           if (numberOfCards < 2) {
             setShowColorChanger(true);
             setShowPlus4Confirm(false);
+            return true;
           }
           if (numberOfCards >= 2) {
             setShowPlus4Confirm(true);
+            return true;
           }
         }
-        if (lastCard?.type === type) return true;
-        if (lastCard?.card === card) return true;
-        if (type == "common") return true;
+        if (lastCard?.type === type) {
+          setCurrentPlayer(getNextPlayer());
+          return true;
+        };
+        if (lastCard?.card === card) {
+          setCurrentPlayer(getNextPlayer());
+          return true;
+        }
+        if (type == "common") {
+          setCurrentPlayer(getNextPlayer());
+          return true;
+        }
         console.log("different");
         return false
       }
 
+      const getNextPlayer = () => {
+        if (currentPlayer == numberOfPlayers-1) return 0;
+        return currentPlayer+1;
+      }
+
       const clickHandler = (e: React.MouseEvent) => {
+        if (currentPlayer != 0) return;
         const target = e.currentTarget;
         const index = cardsRef.current.findIndex(c => c === target);
-        const check =cardChecker(playersCards[index]?.type, playersCards[index]?.card);
+        const check = cardChecker(playersCards[index]?.type, playersCards[index]?.card);
         if (!check) {
           gsap.to(target, {
             motionPath: {
@@ -241,7 +259,6 @@ function CardDeck(props: Props) {
         };
 
         const clientX = e.clientX;
-        console.log(clientX - window.innerWidth / 2);
         const clientY = e.clientY;
         
         const rect = target.getBoundingClientRect();
