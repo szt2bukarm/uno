@@ -64,7 +64,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       const wrapper = e.currentTarget.getBoundingClientRect();
 
       const x = (e.clientX - (wrapper.left + wrapper.width / 2)) / 6;
-      const y = (e.clientY - (wrapper.top + wrapper.height / 2)) / 6;
+      const y = (e.clientY - (wrapper.top + wrapper.height / 2)) / 20;
 
       gsap.to(cardRef.current, {
         rotateX: -y,

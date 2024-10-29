@@ -25,7 +25,7 @@ const Players = styled.div`
     left: 50%;
     /* transform: translateX(-1500px); */
     display: flex;
-    transition: transform .3s;
+    transition: transform .5s cubic-bezier(.78,.14,.24,.85);
 
 `
 
@@ -52,12 +52,12 @@ function EnemyPlayerWrapper() {
             <InnerWrapper>
                 <Players style={{transform: `translateX(-${transform}px)`}}>
                 <EnemyPlayer playerNo={1}/>
-                <EnemyPlayer playerNo={2}/>
-                <EnemyPlayer playerNo={3}/>
-                <EnemyPlayer playerNo={4}/>
+                {/* <EnemyPlayer playerNo={2}/>
+                <EnemyPlayer playerNo={3}/> */}
+                {/* <EnemyPlayer playerNo={4}/>
                 <EnemyPlayer playerNo={5}/>
                 <EnemyPlayer playerNo={6}/>
-                <EnemyPlayer playerNo={7}/>
+                <EnemyPlayer playerNo={7}/> */}
                 {/* <EnemyPlayer playerNo={2}/> */}
                 </Players>
             </InnerWrapper>

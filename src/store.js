@@ -1,16 +1,36 @@
 import {create} from "zustand";
+import cardGenerator from "./utils/Cardgenerator";
 
 const useStore = create((set) => ({
-    players: [],
+    playersCards: {},
+    playerNo: 0,
     playedCards: {
-    },
-    playersCards: {
     },
     expandCards: false,
     showColorChanger: false,
     showPlus4Confirm: false,
     currentPlayer: 0,
-    numberOfPlayers: 8,
+    numberOfPlayers: 2,
+    reversed: false,
+    attackedPlayerID: null,
+    attackAmount: 0,
+
+    setAttackedPlayerID: (value) => set({ attackedPlayerID: value }),
+    setAttackAmount: (value) => set({ attackAmount: value }),
+    initializePlayers: () => set((state) =>{
+        const playersCards = {};
+        for (let i = 0; i < state.numberOfPlayers; i++) {
+            playersCards[i] = cardGenerator(7);  
+        }
+
+        console.log(playersCards);
+        return { playersCards: playersCards };
+    }),
+    editPlayersCards: (playerID,cards) => set((state) => {
+        const newCards = {...state.playersCards, [playerID]: cards};
+        return { playersCards: newCards };
+    }),
+    setReversed: (value) => set({ reversed: value }),
     setShowPlus4Confirm: (value) => set({ showPlus4Confirm: value }),
     setNumberOfPlayers: (value) => set({ numberOfPlayers: value }),
     setCurrentPlayer: (value) => set({ currentPlayer: value }),
@@ -31,9 +51,6 @@ const useStore = create((set) => ({
         return { playedCards:  newPlayedCards};
     }),
     setPlayersCards: (playersCards) => set({ playersCards }),
-    setPlayers: (players) => set({ players }),
-    addPlayer: (player) => set((state) => ({ players: [...state.players, player] })),
-    removePlayer: (player) => set((state) => ({ players: state.players.filter((p) => p !== player) })),
 }))
 
 export default useStore

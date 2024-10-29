@@ -40,15 +40,13 @@ const CardWrapper = styled.div`
 
 
 
-interface Props {}
 
-function CardDeck(props: Props) {
-    const {} = props
+function CardDeck() {
     const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [startX,setStartX] = useState(0)
     const [isDragging,setIsDragging] = useState(false)
-    const { setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
+    const { setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
 
 
@@ -140,7 +138,7 @@ function CardDeck(props: Props) {
       }
 
       const PlacePlus4 = () => {
-        const plus4card = Object.values(playersCards).findIndex(c => c.card === "plus4");
+        const plus4card = Object.values(playersCards[0]).findIndex(c => c.card === "plus4");
         if (plus4card !== -1) {
           const target = cardsRef.current[plus4card];
           
@@ -161,8 +159,8 @@ function CardDeck(props: Props) {
               onComplete: () => {
                 cardsRef.current = cardsRef.current.filter((c) => c !== null);
                 setPlayedCards({
-                  type: playersCards[plus4card]?.type,
-                  card: playersCards[plus4card]?.card,
+                  type: Object.values(playersCards[0])[plus4card]?.type,
+                  card: Object.values(playersCards[0])[plus4card]?.card,
                   x: rect.left + rect.width / 2, 
                   y: rect.top + rect.height / 2, 
                 });
@@ -179,11 +177,11 @@ function CardDeck(props: Props) {
                   },
                 });
       
-                const newCards = Object.values(playersCards).filter((_, i) => i !== plus4card);
-                setPlayersCards(newCards);
+                const newCards = Object.values(playersCards[0]).filter((_, i) => i !== plus4card);
+                editPlayersCards(0,newCards);
                 setExpandCards(false);
 
-                const numberOfCards = Object.values(playersCards).filter(c => c.card == "plus4").length;
+                const numberOfCards = Object.values(playersCards[0]).filter(c => c.card == "plus4").length;
                 if (numberOfCards < 2) {
                   setShowColorChanger(true);
                   setShowPlus4Confirm(false);
@@ -199,12 +197,13 @@ function CardDeck(props: Props) {
 
       const cardChecker = (type,card) => {
         const lastCard = playedCards[Object.keys(playedCards).length - 1];
+        console.log(type,card);
         if (card == "colorchange") {
           setShowColorChanger(true);
           return true;
         }
         if (card == "plus4") {
-          const numberOfCards = Object.values(playersCards).filter(c => c.card == "plus4").length;
+          const numberOfCards = Object.values(playersCards[0]).filter(c => c.card == "plus4").length;
           if (numberOfCards < 2) {
             setShowColorChanger(true);
             setShowPlus4Confirm(false);
@@ -215,32 +214,51 @@ function CardDeck(props: Props) {
             return true;
           }
         }
+        if (card == "block") {
+          setCurrentPlayer(getNextPlayer(2));
+          console.log("asd");
+          return true;
+        }
+        if (card == "plus2") {
+          setTimeout(() => {
+            setAttackedPlayerID(getNextPlayer(1));
+            setAttackAmount(2);  
+          }, 200);
+          return true;
+        }
+        if (card == "reverse") {
+          setReversed(!reversed);
+          return true;
+        }
         if (lastCard?.type === type) {
-          setCurrentPlayer(getNextPlayer());
+          setCurrentPlayer(getNextPlayer(1));
           return true;
         };
         if (lastCard?.card === card) {
-          setCurrentPlayer(getNextPlayer());
+          setCurrentPlayer(getNextPlayer(1));
           return true;
         }
         if (type == "common") {
-          setCurrentPlayer(getNextPlayer());
+          setCurrentPlayer(getNextPlayer(1));
           return true;
         }
-        console.log("different");
         return false
       }
 
-      const getNextPlayer = () => {
-        if (currentPlayer == numberOfPlayers-1) return 0;
-        return currentPlayer+1;
-      }
+      const getNextPlayer = (n) => {
+        if (reversed) {
+            return currentPlayer === 0 ? numberOfPlayers - n : currentPlayer - n;
+        } else {
+            return currentPlayer === numberOfPlayers - 1 ? 0 : currentPlayer + n;
+        }
+    };
+    
 
       const clickHandler = (e: React.MouseEvent) => {
         if (currentPlayer != 0) return;
         const target = e.currentTarget;
         const index = cardsRef.current.findIndex(c => c === target);
-        const check = cardChecker(playersCards[index]?.type, playersCards[index]?.card);
+        const check = cardChecker(Object.values(playersCards[0])[index]?.type, Object.values(playersCards[0])[index]?.card);
         if (!check) {
           gsap.to(target, {
             motionPath: {
@@ -283,8 +301,8 @@ function CardDeck(props: Props) {
             onComplete: () => {
             cardsRef.current.filter((c, i) => c !== null);
             setPlayedCards({
-              type: playersCards[index]?.type,
-              card: playersCards[index]?.card,
+              type: Object.values(playersCards[0])[index]?.type,
+              card: Object.values(playersCards[0])[index]?.card,
               x: clientX,
               y: clientY,
             });
@@ -300,8 +318,8 @@ function CardDeck(props: Props) {
               }
             })
             
-            const newCards = Object.values(playersCards).filter((c, i) => c !== playersCards[index]);
-            setPlayersCards(newCards);
+            const newCards = Object.values(playersCards[0]).filter((c, i) => c !== Object.values(playersCards[0])[index]);
+            editPlayersCards(0,newCards);
             setExpandCards(false);
           }
         });
@@ -311,7 +329,7 @@ function CardDeck(props: Props) {
       <Wrapper ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
           <InnerWrapper>
             <CardWrapper>
-          {Object.values(playersCards).length > 0 && Object.values(playersCards).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={playersCards[i].type} card={playersCards[i].card} ref={(el) => cardsRef.current[i] = el}/>)}
+          {Object.values(playersCards).length > 0 && Object.values(playersCards[0]).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={c.type} card={c.card} ref={(el) => cardsRef.current[i] = el}/>)}
             </CardWrapper>
             {showPlus4Confirm && <Plus4Confirm onClick={PlacePlus4}/>}
           </InnerWrapper>

@@ -9,6 +9,7 @@ import EnemyPlayer from './components/EnemyPlayerWrapper'
 import useCardgenerator from './utils/Cardgenerator';
 import EnemyPlayerWrapper from './components/EnemyPlayerWrapper'
 import Plus4Confirm from './components/Plus4Confirm'
+import PlayerList from './components/PlayerList'
 
 const types = ["red","blue","green","yellow"]
 const cards = ["0","1","2","3","4","5","6","7","8","9"]
@@ -40,27 +41,24 @@ const colors = {
     black: "black"
 }
 
-interface Props {}
 
-function Match(props: Props) {
-    const {} = props
-    const { setPlayersCards,setPlayedCards, playedCards, playersCards,showColorChanger, showPlus4Confirm } = useStore();
+function Match() {
+    const { numberOfPlayers, initializePlayers, setPlayersCards,setPlayedCards, playedCards, playersCards,showColorChanger, showPlus4Confirm } = useStore();
     const cardObject = useCardgenerator();
 
     const newGame = () => {
-        console.log(Object.values(cardObject));
         setPlayersCards(cardObject);
-        
+        initializePlayers();
         const type = types[Math.floor(Math.random() * types.length)];
         const card = cards[Math.floor(Math.random() * cards.length)];
-        console.log(type,card);
         setPlayedCards({ type,card, x: 1, y: 1 });
     }
 
     return (
         <Wrapper style={{background: colors[playedCards[Object.values(playedCards).length - 1]?.type]}}>
             <RadialShadow />
-            {Object.values (playersCards).length > 0 && <CardDeck /> }
+            {Object.values(playersCards).length > 0 && <PlayerList />}
+            {Object.values(playersCards).length > 0 && <CardDeck /> }
             {Object.values(playedCards).length > 0 && <PlayedCards />}
             {Object.values(playersCards).length > 0 && <CardStack />}
             {showColorChanger && <ColorSwitcher />}

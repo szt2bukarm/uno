@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import useStore from '../store.js'
+import cardGenerator from '../utils/Cardgenerator'
 gsap.registerPlugin(MotionPathPlugin);
 
 const cards = ["0","1","2","3","4","5","6","7","8","9","reverse","block","plus2"]
@@ -30,7 +31,7 @@ const InnerWrapper = styled.div`
 const CardAbosolute = styled.div`
   position: absolute;
   top: 50%;
-  left: 25%;
+  left: 33%;
   transform: translateY( -50%);
   transition: filter 0.1s, scale 0.1s;
 
@@ -81,16 +82,16 @@ const Back = styled.img`
 
 
 
-interface Props {}
 
-function CardStack(props: Props) {
-    const {} = props
+function CardStack() {
     const [pulledCards, setPulledCards] = useState([]);
+    const [attackCards, setAttackCards] = useState(0);
     const cardsRef = useRef<HTMLDivElement>([]);
     const frontRef = useRef<HTMLImageElement>([]);
     const backRef = useRef<HTMLImageElement>([]);
     const stackRef = useRef<HTMLDivElement>(null);
-    const { setPlayersCards, playersCards,setExpandCards,showPlus4Confirm,currentPlayer,setCurrentPlayer,numberOfPlayers } = useStore();
+    const attackedCardsRef = useRef<HTMLDivElement>([]);
+    const { setAttackedPlayerID,attackedPlayerID, attackAmount,setAttackAmount, editPlayersCards, playersCards,setExpandCards,showPlus4Confirm,currentPlayer,setCurrentPlayer,numberOfPlayer, } = useStore();
 
     useEffect(() => {
         gsap.set(stackRef.current, {
@@ -105,8 +106,8 @@ function CardStack(props: Props) {
         })
     }, [])
 
-    const pullCard = (e: React.MouseEvent) => {
-        if (showPlus4Confirm) return;
+
+    const generateCard = () => {
         let randomType = "";
         let randomCard = "";
         const cardTypeChance = Math.floor(Math.random() * 20); 
@@ -120,10 +121,16 @@ function CardStack(props: Props) {
             randomType = "common";
             randomCard = card;
         }
+        return { randomType, randomCard };
+    }
+
+    const pullCard = () => {
+        if (showPlus4Confirm) return;
+        const cardData = generateCard();
 
         setExpandCards(true);
         setPulledCards((prevPulledCards) => {
-            const newPulledCards = [...prevPulledCards, { type: randomType, card: randomCard }];
+            const newPulledCards = [...prevPulledCards, { type: cardData.randomType, card: cardData.randomCard }];
             AnimatePulledCard(newPulledCards);
             return newPulledCards;
         });    
@@ -135,9 +142,9 @@ function CardStack(props: Props) {
     }
 
     const checkPlayersCards = () => {
-        const commonIndex = Object.values(playersCards).findIndex(c => c.type == "common");
-        const cardIndex = Object.values(playersCards).findIndex(c => c.card == c);
-        const typeIndex = Object.values(playersCards).findIndex(c => c.type == c);
+        const commonIndex = Object.values(playersCards[0]).findIndex(c => c.type == "common");
+        const cardIndex = Object.values(playersCards[0]).findIndex(c => c.card == c);
+        const typeIndex = Object.values(playersCards[0]).findIndex(c => c.type == c);
         if (commonIndex != -1 || cardIndex != -1 || typeIndex != -1) {
             return;
         } else {
@@ -149,7 +156,8 @@ function CardStack(props: Props) {
 
     const AnimatePulledCard = (newPulledCards) => {
         const stackPosition = stackRef.current.getBoundingClientRect();
-        playersCards[Object.keys(playersCards).length] = newPulledCards[newPulledCards.length - 1];
+        const newCards = {...playersCards[0]};
+        newCards[Object.keys(playersCards[0]).length] = newPulledCards[newPulledCards.length - 1];
         setTimeout(() => {
             gsap.to(cardsRef.current[pulledCards.length], {
                 scale: 1.2,
@@ -157,7 +165,7 @@ function CardStack(props: Props) {
                 motionPath: {
                     path: [
                         { x: 100 , y: -100 },
-                        { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2), y: window.innerHeight / 2 - (stackPosition.top + stackPosition.height/2 ) },           // Starting point (current position)
+                        { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2), y: window.innerHeight / 2 - (stackPosition.top + stackPosition.height/2 ) },           // 
                     ],
                     curviness: 1,  
                     },
@@ -180,11 +188,42 @@ function CardStack(props: Props) {
                     duration: 0.2,
                     delay: 1.5,
                     onComplete: () => {
-                        setPlayersCards(playersCards);
+                        editPlayersCards(0, newCards);
                         checkPlayersCards();
                     }
                 })
         }, 1);
+    }
+
+    const animateAttackedCards = () => {
+        const stackPosition = stackRef.current.getBoundingClientRect();
+        gsap.to(attackedCardsRef.current, {
+            // scale: 1.5,
+            filter: `drop-shadow(0px 0px 50px rgba(0, 0, 0))`,
+            motionPath: {
+                path: [
+                    { x: 100 , y: 0 },
+                    { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2), y: window.innerHeight * -1 / 3 },
+                ],
+                curviness: 1,  
+                },
+                duration: 0.5,
+                stagger: 0.1
+        })
+        gsap.to(attackedCardsRef.current, {
+            scale: 1.5,
+            y: -500,
+            opacity: 0,
+            duration: 0.2,
+            delay: 0.3,
+            stagger: 0.1,
+            onComplete: () => {
+                setAttackCards(0);
+                setAttackAmount(0);
+                setCurrentPlayer(attackedPlayerID)
+                setAttackedPlayerID(null);
+            }
+        })
     }
 
     useEffect(() => {
@@ -197,9 +236,35 @@ function CardStack(props: Props) {
         }
     }, [pulledCards])
 
+    useEffect(() => {
+        if (attackedPlayerID) {
+            setAttackCards(attackAmount);
+            const newCards = {...playersCards[attackedPlayerID]};
+            for (let i = 0; i < attackAmount; i++) {
+                const cardData = generateCard();
+                newCards[Object.keys(playersCards[attackedPlayerID]).length + i] = { type: cardData.randomType, card: cardData.randomCard };
+            }
+            editPlayersCards(attackedPlayerID, newCards);
+            setTimeout(() => {
+                animateAttackedCards();
+            }, 1);
+        }
+        
+        const timeout = setTimeout(() => {
+            setAttackCards(0);
+            setAttackAmount(0);
+        }, attackAmount * 1500 * 0.2)
+
+        return () => {
+            clearTimeout(timeout);
+        }
+    }, [attackAmount, attackedPlayerID])
+
+
+
     return <Wrapper>
         <InnerWrapper >
-            <CardAbosolute ref={stackRef} onClick={(e) => pullCard(e)} >
+            <CardAbosolute ref={stackRef} onClick={pullCard}>
                 <CardInner style={{pointerEvents: showPlus4Confirm ? "none" : "all"}}>
                     <Back src={`cards/1.png`} />
                 </CardInner>
@@ -213,8 +278,16 @@ function CardStack(props: Props) {
                         </CardInner>
                     </CardAbosolute>
                 )
-            })
-        }
+            })}
+            {Array.from({length: attackAmount}).map((card,i) => {
+                return (
+                    <CardAbosolute key={i} ref={(el) => attackedCardsRef.current[i] = el}>
+                        <CardInner>
+                            <Back src={`cards/1.png`} />
+                        </CardInner>
+                    </CardAbosolute>
+                )
+            })}
         </InnerWrapper>
     </Wrapper>
 }

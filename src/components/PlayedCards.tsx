@@ -49,7 +49,6 @@ function PlayedCards() {
             const x = lastPlayedCardData?.x - window.innerWidth / 2;
             const y = lastPlayedCardData?.y - window.innerHeight / 2;
             const rotation = lastPlayedCardData?.rotation
-            console.log(x);
 
             gsap.set(lastPlayedCard, {
                 x: x,
@@ -70,7 +69,7 @@ function PlayedCards() {
                 motionPath: {
                     path: [
                         { x: x, y: y },
-                        { x: x + window.innerHeight / 20, y: y - 100 },
+                        { x: x + window.innerHeight / 20, y: y },
                         { x: 0, y: 0 },
                     ],
                     curviness: 3,
