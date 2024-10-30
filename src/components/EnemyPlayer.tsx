@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import useStore from '../store.js'
-import useCardgenerator from '../utils/Cardgenerator.js'
+import useNextPlayer from '../utils/useNextPlayer.js'
 import styled from 'styled-components'
 import gsap from 'gsap'
 
@@ -32,8 +32,9 @@ interface props {
 }
 
 function EnemyPlayer({ playerNo }: props) {
-    const { reversed,setReversed,currentPlayer,numberOfPlayers,setCurrentPlayer,playedCards,setPlayedCards,playersCards,editPlayersCards } = useStore();
+    const { setAttackedPlayerID,setAttackAmount,reversed,setReversed,currentPlayer,numberOfPlayers,setCurrentPlayer,playedCards,setPlayedCards,playersCards,editPlayersCards } = useStore();
     const cardsRef = useRef<HTMLDivElement>([]);
+    const getNextPlayer = useNextPlayer();
 
     useEffect(() => {
         cardsRef.current = cardsRef.current.filter(c => c != null);
@@ -57,18 +58,7 @@ function EnemyPlayer({ playerNo }: props) {
     useEffect(() => {
         editPlayersCards(playerNo,Object.values(playersCards[playerNo]));
     },[playerNo])
-
-    const getNextPlayer = () => {
-        if (reversed) {
-            console.log(currentPlayer === 0 ? numberOfPlayers - 1 : currentPlayer - 1);
-            return currentPlayer === 0 ? numberOfPlayers - 1 : currentPlayer - 1;
-        } else {
-            console.log(currentPlayer === numberOfPlayers - 1 ? 0 : currentPlayer + 1);
-            return currentPlayer === numberOfPlayers - 1 ? 0 : currentPlayer + 1;
-        }
-    };
     
-
       const addCardToPlayedCards = (index) => {
         const target = cardsRef.current[index];
         const card = Object.values(playersCards[playerNo])[index];
@@ -80,6 +70,14 @@ function EnemyPlayer({ playerNo }: props) {
             const color = colors[Math.floor(Math.random() * colors.length)];
             setType = color;
             setCard = "1";
+        }
+
+        if (card.card == "plus2") {
+            setTimeout(() => {
+                setAttackedPlayerID(getNextPlayer(1));
+                setAttackAmount(2);  
+              }, 200);
+            console.log(getNextPlayer(1));
         }
 
         if (card.card == "reverse") {
@@ -97,7 +95,7 @@ function EnemyPlayer({ playerNo }: props) {
       
           const newCards = Object.values(playersCards[playerNo]).filter((c, i) => c !== card);
           editPlayersCards(playerNo,newCards);
-          setCurrentPlayer(getNextPlayer());
+          setCurrentPlayer(getNextPlayer(1));
           setPlayedCards({
             type: setType,
             card: setCard,

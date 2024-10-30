@@ -5,6 +5,7 @@ import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import styled from 'styled-components'
 import useStore from '../store.js'
 import Plus4Confirm from './Plus4Confirm.js'
+import useNextPlayer from '../utils/useNextPlayer.js'
 gsap.registerPlugin(MotionPathPlugin);
 
 const Wrapper = styled.div`
@@ -48,7 +49,7 @@ function CardDeck() {
     const [isDragging,setIsDragging] = useState(false)
     const { setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
-
+    const getNextPlayer = useNextPlayer();
 
 
     useEffect(() => {
@@ -245,13 +246,13 @@ function CardDeck() {
         return false
       }
 
-      const getNextPlayer = (n) => {
-        if (reversed) {
-            return currentPlayer === 0 ? numberOfPlayers - n : currentPlayer - n;
-        } else {
-            return currentPlayer === numberOfPlayers - 1 ? 0 : currentPlayer + n;
-        }
-    };
+    //   const getNextPlayer = (n) => {
+    //     if (reversed) {
+    //         return currentPlayer === 0 ? numberOfPlayers - n : currentPlayer - n;
+    //     } else {
+    //         return currentPlayer === numberOfPlayers - 1 ? 0 : currentPlayer + n;
+    //     }
+    // };
     
 
       const clickHandler = (e: React.MouseEvent) => {

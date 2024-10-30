@@ -238,6 +238,7 @@ function CardStack() {
 
     useEffect(() => {
         if (attackedPlayerID) {
+            console.log(attackedPlayerID);
             setAttackCards(attackAmount);
             const newCards = {...playersCards[attackedPlayerID]};
             for (let i = 0; i < attackAmount; i++) {
@@ -258,7 +259,7 @@ function CardStack() {
         return () => {
             clearTimeout(timeout);
         }
-    }, [attackAmount, attackedPlayerID])
+    }, [attackedPlayerID])
 
 
 
