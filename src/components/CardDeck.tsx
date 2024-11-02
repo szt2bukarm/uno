@@ -16,6 +16,7 @@ const Wrapper = styled.div`
   height: 100vh;
   z-index: 9;
   pointer-events: none;
+  transition: opacity .1s;
 `
 
 const InnerWrapper = styled.div`
@@ -47,24 +48,24 @@ function CardDeck() {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [startX,setStartX] = useState(0)
     const [isDragging,setIsDragging] = useState(false)
-    const { setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
+    const { setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,basicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
     const getNextPlayer = useNextPlayer();
 
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-          if (e.code === 'Space') {
-            setExpandCards(!expandCards); 
-          }
-        };
+    // useEffect(() => {
+    //     const handleKeyDown = (e: KeyboardEvent) => {
+    //       if (e.code === 'Space') {
+    //         setExpandCards(!expandCards); 
+    //       }
+    //     };
     
-        window.addEventListener('keydown', handleKeyDown);
+    //     window.addEventListener('keydown', handleKeyDown);
     
-        return () => {
-          window.removeEventListener('keydown', handleKeyDown);
-        };
-      }, [expandCards]);
+    //     return () => {
+    //       window.removeEventListener('keydown', handleKeyDown);
+    //     };
+    //   }, [expandCards]);
     
       useEffect(() => {
         cardsRef.current = cardsRef.current.filter((card) => card !== null);
@@ -117,7 +118,37 @@ function CardDeck() {
         }, newMatch.current ? 800 : 0);
       }, [expandCards, playersCards]);
 
+      useEffect(() => {
+        // console.log("bot")
+        // console.log(blockedPlayerID)
+        // console.log(botNo)
+        if (+blockedPlayerID == +playerNo) {
+            console.log(blockedPlayerID + "blocked")
+          gsap.to(cardsRef.current, {
+            filter: `saturate(0)`,
+            duration: 0.5
+          })
+          gsap.to(cardsRef.current, {
+            filter: `saturate(1)`,
+            duration: 0.5,
+            delay: 1,
+          })
+          setTimeout(() => {
+              setCurrentPlayer(getNextPlayer());
+              setBlockedPlayerID(-1);
+            }, 1500);
+        }
+      }, [blockedPlayerID,currentPlayer,Object.values(playersCards[playerNo]),playerNo])
 
+
+      useEffect(() => {
+        setTimeout(() => {
+          if (currentPlayer == playerNo) {
+            setExpandCards(true);
+            return
+          }
+        }, newMatch.current ? 1300 : 0);
+      },[currentPlayer])
 
       const mouseDownHandler = (e: any) => {
           setStartX(e.clientX);
@@ -139,7 +170,7 @@ function CardDeck() {
       }
 
       const PlacePlus4 = () => {
-        const plus4card = Object.values(playersCards[0]).findIndex(c => c.card === "plus4");
+        const plus4card = Object.values(playersCards[playerNo]).findIndex(c => c.card === "plus4");
         if (plus4card !== -1) {
           const target = cardsRef.current[plus4card];
           
@@ -160,8 +191,8 @@ function CardDeck() {
               onComplete: () => {
                 cardsRef.current = cardsRef.current.filter((c) => c !== null);
                 setPlayedCards({
-                  type: Object.values(playersCards[0])[plus4card]?.type,
-                  card: Object.values(playersCards[0])[plus4card]?.card,
+                  type: Object.values(playersCards[playerNo])[plus4card]?.type,
+                  card: Object.values(playersCards[playerNo])[plus4card]?.card,
                   x: rect.left + rect.width / 2, 
                   y: rect.top + rect.height / 2, 
                 });
@@ -178,11 +209,11 @@ function CardDeck() {
                   },
                 });
       
-                const newCards = Object.values(playersCards[0]).filter((_, i) => i !== plus4card);
-                editPlayersCards(0,newCards);
+                const newCards = Object.values(playersCards[playerNo]).filter((_, i) => i !== plus4card);
+                editPlayersCards(playerNo,newCards);
                 setExpandCards(false);
 
-                const numberOfCards = Object.values(playersCards[0]).filter(c => c.card == "plus4").length;
+                const numberOfCards = Object.values(playersCards[playerNo]).filter(c => c.card == "plus4").length;
                 if (numberOfCards < 2) {
                   setShowColorChanger(true);
                   setShowPlus4Confirm(false);
@@ -198,13 +229,14 @@ function CardDeck() {
 
       const cardChecker = (type,card) => {
         const lastCard = playedCards[Object.keys(playedCards).length - 1];
-        console.log(type,card);
         if (card == "colorchange") {
+          setBasicColorChanger(true);
           setShowColorChanger(true);
           return true;
         }
         if (card == "plus4") {
-          const numberOfCards = Object.values(playersCards[0]).filter(c => c.card == "plus4").length;
+          const numberOfCards = Object.values(playersCards[playerNo]).filter(c => c.card == "plus4").length;
+          setBasicColorChanger(false);
           if (numberOfCards < 2) {
             setShowColorChanger(true);
             setShowPlus4Confirm(false);
@@ -215,19 +247,19 @@ function CardDeck() {
             return true;
           }
         }
-        if (card == "block") {
-          setCurrentPlayer(getNextPlayer(2));
-          console.log("asd");
+        if (card == "block" && (lastCard?.card == "block" || lastCard?.type == type)) {
+          setCurrentPlayer(getNextPlayer());
+          setBlockedPlayerID(getNextPlayer());
           return true;
         }
-        if (card == "plus2") {
+        if (card == "plus2" && (lastCard?.card == "plus2" || lastCard?.type == type)) {
           setTimeout(() => {
             setAttackedPlayerID(getNextPlayer(1));
             setAttackAmount(2);  
           }, 200);
           return true;
         }
-        if (card == "reverse") {
+        if (card == "reverse" && (lastCard?.card == "reverse" || lastCard?.type == type)) {
           setReversed(!reversed);
           return true;
         }
@@ -245,21 +277,12 @@ function CardDeck() {
         }
         return false
       }
-
-    //   const getNextPlayer = (n) => {
-    //     if (reversed) {
-    //         return currentPlayer === 0 ? numberOfPlayers - n : currentPlayer - n;
-    //     } else {
-    //         return currentPlayer === numberOfPlayers - 1 ? 0 : currentPlayer + n;
-    //     }
-    // };
     
-
       const clickHandler = (e: React.MouseEvent) => {
-        if (currentPlayer != 0) return;
+        if (currentPlayer != playerNo) return;
         const target = e.currentTarget;
         const index = cardsRef.current.findIndex(c => c === target);
-        const check = cardChecker(Object.values(playersCards[0])[index]?.type, Object.values(playersCards[0])[index]?.card);
+        const check = cardChecker(Object.values(playersCards[playerNo])[index]?.type, Object.values(playersCards[playerNo])[index]?.card);
         if (!check) {
           gsap.to(target, {
             motionPath: {
@@ -302,8 +325,8 @@ function CardDeck() {
             onComplete: () => {
             cardsRef.current.filter((c, i) => c !== null);
             setPlayedCards({
-              type: Object.values(playersCards[0])[index]?.type,
-              card: Object.values(playersCards[0])[index]?.card,
+              type: Object.values(playersCards[playerNo])[index]?.type,
+              card: Object.values(playersCards[playerNo])[index]?.card,
               x: clientX,
               y: clientY,
             });
@@ -319,18 +342,22 @@ function CardDeck() {
               }
             })
             
-            const newCards = Object.values(playersCards[0]).filter((c, i) => c !== Object.values(playersCards[0])[index]);
-            editPlayersCards(0,newCards);
+            const newCards = Object.values(playersCards[playerNo]).filter((c, i) => c !== Object.values(playersCards[playerNo])[index]);
+            editPlayersCards(playerNo,newCards);
             setExpandCards(false);
           }
         });
       };
 
+      useEffect(() => {
+        if (currentPlayer == playerNo) setAllowCardPull(true);
+      },[currentPlayer])
+        
     return (
-      <Wrapper ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
+      <Wrapper style={{opacity: currentPlayer == playerNo ? 1 : 0.5}} ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
           <InnerWrapper>
             <CardWrapper>
-          {Object.values(playersCards).length > 0 && Object.values(playersCards[0]).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={c.type} card={c.card} ref={(el) => cardsRef.current[i] = el}/>)}
+          {Object.values(playersCards).length > 0 && Object.values(playersCards[playerNo]).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={c.type} card={c.card} ref={(el) => cardsRef.current[i] = el}/>)}
             </CardWrapper>
             {showPlus4Confirm && <Plus4Confirm onClick={PlacePlus4}/>}
           </InnerWrapper>

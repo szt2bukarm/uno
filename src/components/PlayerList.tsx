@@ -58,14 +58,14 @@ const colors = {
 
 
 function PlayerList() {
-    const { currentPlayer, numberOfPlayers,playedCards,playersCards } = useStore();
+    const { currentPlayer,playerNo, numberOfPlayers,playedCards,playersCards } = useStore();
 
     return (
         <Wrapper>
             <Title>Player List</Title>
             {Array.from({ length: numberOfPlayers }, (_, index) => (
                 <Player key={index}>
-                    Player {index + 1}
+                    {playerNo == index ? "You" : `Bot ${index > playerNo ? index : index+1}`}
                     <Highlight style={{background: currentPlayer === index ? `linear-gradient(to right, ${colors[playedCards[Object.values(playedCards).length - 1]?.type]}, transparent)` : "transparent", left: currentPlayer === index ? "0" : "-1000px"}}/>
                     <GiCardRandom style={{marginLeft: "auto"}}/>
                     <p style={{marginRight: "10px"}}>{Object.values(playersCards[index]).length}</p>

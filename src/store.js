@@ -8,14 +8,25 @@ const useStore = create((set) => ({
     },
     expandCards: false,
     showColorChanger: false,
+    basicColorChanger: true,
     showPlus4Confirm: false,
     currentPlayer: 0,
-    numberOfPlayers: 2,
+    numberOfPlayers: 6,
     reversed: false,
     attackedPlayerID: null,
     attackAmount: 0,
+    allowCardPull: false,
+    blockedPlayerID: -1,
+    botPull: false,
 
-    setAttackedPlayerID: (value) => set({ attackedPlayerID: value }),
+    setBlockedPlayerID: (value) => set({blockedPlayerID: value}),
+    setBasicColorChanger: (value) => set({basicColorChanger: value}),
+    setBotPull: (value) => set({botPull: value}),
+    setAllowCardPull: (value) => set({allowCardPull: value}),
+    setAttackedPlayerID: (value) => set(() => {
+        console.log("attacked: " + value);
+        return { attackedPlayerID: value }
+    }),
     setAttackAmount: (value) => set({ attackAmount: value }),
     initializePlayers: () => set((state) =>{
         const playersCards = {};
@@ -33,7 +44,10 @@ const useStore = create((set) => ({
     setReversed: (value) => set({ reversed: value }),
     setShowPlus4Confirm: (value) => set({ showPlus4Confirm: value }),
     setNumberOfPlayers: (value) => set({ numberOfPlayers: value }),
-    setCurrentPlayer: (value) => set({ currentPlayer: value }),
+    setCurrentPlayer: (value) => set(() => {
+        console.log(value);
+        return {currentPlayer: value}
+    }),
     setShowColorChanger: (value) => set({ showColorChanger: value }),
     setExpandCards: (value) => set({ expandCards: value }),
     setPlayedCards: (playedCard) => set((state) => {

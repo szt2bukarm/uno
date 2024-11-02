@@ -4,6 +4,7 @@ import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import useStore from '../store.js'
 import cardGenerator from '../utils/Cardgenerator'
+import useNextPlayer from '../utils/useNextPlayer'
 gsap.registerPlugin(MotionPathPlugin);
 
 const cards = ["0","1","2","3","4","5","6","7","8","9","reverse","block","plus2"]
@@ -80,9 +81,6 @@ const Back = styled.img`
   transform: rotateY(0deg);
 `;
 
-
-
-
 function CardStack() {
     const [pulledCards, setPulledCards] = useState([]);
     const [attackCards, setAttackCards] = useState(0);
@@ -91,7 +89,8 @@ function CardStack() {
     const backRef = useRef<HTMLImageElement>([]);
     const stackRef = useRef<HTMLDivElement>(null);
     const attackedCardsRef = useRef<HTMLDivElement>([]);
-    const { setAttackedPlayerID,attackedPlayerID, attackAmount,setAttackAmount, editPlayersCards, playersCards,setExpandCards,showPlus4Confirm,currentPlayer,setCurrentPlayer,numberOfPlayer, } = useStore();
+    const { playerNo,setBotPull,botPull,allowCardPull,setAllowCardPull,setAttackedPlayerID,attackedPlayerID, attackAmount,setAttackAmount, editPlayersCards, playersCards,setExpandCards,showPlus4Confirm,currentPlayer,setCurrentPlayer,numberOfPlayer, } = useStore();
+    const getNextPlayer = useNextPlayer();
 
     useEffect(() => {
         gsap.set(stackRef.current, {
@@ -125,9 +124,11 @@ function CardStack() {
     }
 
     const pullCard = () => {
+        if (!allowCardPull) return;
         if (showPlus4Confirm) return;
         const cardData = generateCard();
 
+        setAllowCardPull(false);
         setExpandCards(true);
         setPulledCards((prevPulledCards) => {
             const newPulledCards = [...prevPulledCards, { type: cardData.randomType, card: cardData.randomCard }];
@@ -136,19 +137,15 @@ function CardStack() {
         });    
     }
 
-    const getNextPlayer = () => {
-        if (currentPlayer == numberOfPlayers-1) return 0;
-        return currentPlayer+1;
-    }
 
     const checkPlayersCards = () => {
-        const commonIndex = Object.values(playersCards[0]).findIndex(c => c.type == "common");
-        const cardIndex = Object.values(playersCards[0]).findIndex(c => c.card == c);
-        const typeIndex = Object.values(playersCards[0]).findIndex(c => c.type == c);
+        const commonIndex = Object.values(playersCards[playerNo]).findIndex(c => c.type == "common");
+        const cardIndex = Object.values(playersCards[playerNo]).findIndex(c => c.card == c);
+        const typeIndex = Object.values(playersCards[playerNo]).findIndex(c => c.type == c);
         if (commonIndex != -1 || cardIndex != -1 || typeIndex != -1) {
             return;
         } else {
-            setCurrentPlayer(getNextPlayer());
+            setCurrentPlayer(getNextPlayer(1));
             setExpandCards(false);
             return;
         }
@@ -156,8 +153,8 @@ function CardStack() {
 
     const AnimatePulledCard = (newPulledCards) => {
         const stackPosition = stackRef.current.getBoundingClientRect();
-        const newCards = {...playersCards[0]};
-        newCards[Object.keys(playersCards[0]).length] = newPulledCards[newPulledCards.length - 1];
+        const newCards = {...playersCards[playerNo]};
+        newCards[Object.keys(playersCards[playerNo]).length] = newPulledCards[newPulledCards.length - 1];
         setTimeout(() => {
             gsap.to(cardsRef.current[pulledCards.length], {
                 scale: 1.2,
@@ -165,7 +162,8 @@ function CardStack() {
                 motionPath: {
                     path: [
                         { x: 100 , y: -100 },
-                        { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2), y: window.innerHeight / 2 - (stackPosition.top + stackPosition.height/2 ) },           // 
+                        { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2),
+                         y: window.innerHeight / 2 - (stackPosition.top + stackPosition.height/2) },        
                     ],
                     curviness: 1,  
                     },
@@ -188,7 +186,7 @@ function CardStack() {
                     duration: 0.2,
                     delay: 1.5,
                     onComplete: () => {
-                        editPlayersCards(0, newCards);
+                        editPlayersCards(playerNo, newCards);
                         checkPlayersCards();
                     }
                 })
@@ -196,6 +194,7 @@ function CardStack() {
     }
 
     const animateAttackedCards = () => {
+        const direction = attackedPlayerID == null ? -200 : attackedPlayerID == playerNo ? 200 : -200
         const stackPosition = stackRef.current.getBoundingClientRect();
         gsap.to(attackedCardsRef.current, {
             // scale: 1.5,
@@ -203,7 +202,7 @@ function CardStack() {
             motionPath: {
                 path: [
                     { x: 100 , y: 0 },
-                    { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2), y: window.innerHeight * -1 / 3 },
+                    { x: window.innerWidth / 2 - (stackPosition.left + stackPosition.width/2),y: direction },
                 ],
                 curviness: 1,  
                 },
@@ -212,7 +211,6 @@ function CardStack() {
         })
         gsap.to(attackedCardsRef.current, {
             scale: 1.5,
-            y: -500,
             opacity: 0,
             duration: 0.2,
             delay: 0.3,
@@ -220,7 +218,6 @@ function CardStack() {
             onComplete: () => {
                 setAttackCards(0);
                 setAttackAmount(0);
-                setCurrentPlayer(attackedPlayerID)
                 setAttackedPlayerID(null);
             }
         })
@@ -236,19 +233,25 @@ function CardStack() {
         }
     }, [pulledCards])
 
+    const pullCardsForEnemy = (n: number,playerID: number) => {
+        const newCards = {...playersCards[playerID]};
+        for (let i = 0; i < n; i++) {
+            const cardData = generateCard();
+            newCards[Object.keys(playersCards[playerID]).length + i] = { type: cardData.randomType, card: cardData.randomCard };
+        }
+        editPlayersCards(playerID, newCards);
+        setTimeout(() => {
+            animateAttackedCards();
+        }, 1);
+    }
+
     useEffect(() => {
-        if (attackedPlayerID) {
-            console.log(attackedPlayerID);
+        if (attackedPlayerID || attackedPlayerID == playerNo) {
             setAttackCards(attackAmount);
-            const newCards = {...playersCards[attackedPlayerID]};
-            for (let i = 0; i < attackAmount; i++) {
-                const cardData = generateCard();
-                newCards[Object.keys(playersCards[attackedPlayerID]).length + i] = { type: cardData.randomType, card: cardData.randomCard };
-            }
-            editPlayersCards(attackedPlayerID, newCards);
+            pullCardsForEnemy(attackAmount,attackedPlayerID)
             setTimeout(() => {
-                animateAttackedCards();
-            }, 1);
+                setCurrentPlayer(attackedPlayerID)
+            }, 1000);
         }
         
         const timeout = setTimeout(() => {
@@ -259,9 +262,26 @@ function CardStack() {
         return () => {
             clearTimeout(timeout);
         }
-    }, [attackedPlayerID])
+    }, [attackedPlayerID,attackAmount])
 
 
+    useEffect(() => {
+        if (botPull) {
+            setTimeout(() => {
+                setAttackAmount(1);
+                pullCardsForEnemy(1,currentPlayer);
+            }, 500);
+        }
+
+        const timeout = setTimeout(() => {
+            setAttackCards(0);
+            setAttackAmount(0);
+        }, 1500)
+
+        return () => {
+            clearTimeout(timeout);
+        }
+    },[botPull])
 
     return <Wrapper>
         <InnerWrapper >

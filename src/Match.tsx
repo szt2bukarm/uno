@@ -10,6 +10,7 @@ import useCardgenerator from './utils/Cardgenerator';
 import EnemyPlayerWrapper from './components/EnemyPlayerWrapper'
 import Plus4Confirm from './components/Plus4Confirm'
 import PlayerList from './components/PlayerList'
+import YourTurn from './components/YourTurn'
 
 const types = ["red","blue","green","yellow"]
 const cards = ["0","1","2","3","4","5","6","7","8","9"]
@@ -57,6 +58,7 @@ function Match() {
     return (
         <Wrapper style={{background: colors[playedCards[Object.values(playedCards).length - 1]?.type]}}>
             <RadialShadow />
+            {Object.values(playersCards).length > 0 && <YourTurn />}
             {Object.values(playersCards).length > 0 && <PlayerList />}
             {Object.values(playersCards).length > 0 && <CardDeck /> }
             {Object.values(playedCards).length > 0 && <PlayedCards />}

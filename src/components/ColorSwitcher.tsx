@@ -87,7 +87,7 @@ const Color4 = styled.div`
 function ColorSwitcher() {
     const wheelRef = useRef<HTMLDivElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const { setPlayedCards,playedCards,setShowColorChanger,setCurrentPlayer,currentPlayer,numberOfPlayers } = useStore();
+    const { basicColorChanger,setBasicColorChanger,setPlayedCards,playedCards,setShowColorChanger,setCurrentPlayer,currentPlayer,numberOfPlayers } = useStore();
 
     useEffect(() => {
         gsap.set(wheelRef.current, {
@@ -145,11 +145,12 @@ function ColorSwitcher() {
             opacity: 0,
             duration: 0.2,
             onComplete: () => {
+                setBasicColorChanger(true);
                 setShowColorChanger(false);
-                setCurrentPlayer(getNextPlayer());
+                setCurrentPlayer(getNextPlayer(1));
                 setPlayedCards({
                     type: color,
-                    card: "1",
+                    card: basicColorChanger ? "colorchange" : "plus4",
                     x: playedCards[Object.keys(playedCards).length - 1]?.x,
                     y: playedCards[Object.keys(playedCards).length - 1]?.y,
                   });        

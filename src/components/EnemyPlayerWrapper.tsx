@@ -32,19 +32,28 @@ const Players = styled.div`
 
 
 function EnemyPlayerWrapper() {
-    const { currentPlayer } = useStore();
+    const { currentPlayer,playerNo } = useStore();
     const [transform,setTransform] = useState(500);
 
     const getTransform = () => {
-        if (currentPlayer == 0) setTransform(500)
-        setTransform(500+(currentPlayer-1)*1000);
+        // if (currentPlayer == ) 
+        if (currentPlayer >= playerNo) {
+            setTransform((currentPlayer-1)*1000+500)
+            return;
+        }
+        // if (currentPlayer == playerNo) {
+        //     setTransform((currentPlayer-1)*1000+500)
+        //     return;
+        // }
+        setTransform(currentPlayer*1000+500)
+        // if (currentPlayer == 0) setTransform(500)
+        // setTransform(500+(currentPlayer)*1000);
     }
 
     useEffect(() => {
         setTimeout(() => {
-        getTransform();
-            
-        }, 700);
+            getTransform();  
+        }, 500);
     },[currentPlayer])
 
     return (
@@ -52,12 +61,27 @@ function EnemyPlayerWrapper() {
             <InnerWrapper>
                 <Players style={{transform: `translateX(-${transform}px)`}}>
                 <EnemyPlayer playerNo={1}/>
-                {/* <EnemyPlayer playerNo={2}/>
-                <EnemyPlayer playerNo={3}/> */}
-                {/* <EnemyPlayer playerNo={4}/>
+                <EnemyPlayer playerNo={2}/>
+                <EnemyPlayer playerNo={3}/>
+                <EnemyPlayer playerNo={4}/>
+                <EnemyPlayer playerNo={5}/>
+                {/* <EnemyPlayer playerNo={3}/>
+                <EnemyPlayer playerNo={4}/>
                 <EnemyPlayer playerNo={5}/>
                 <EnemyPlayer playerNo={6}/>
-                <EnemyPlayer playerNo={7}/> */}
+                <EnemyPlayer playerNo={7}/>
+                <EnemyPlayer playerNo={8}/>
+                <EnemyPlayer playerNo={9}/>
+                <EnemyPlayer playerNo={10}/>
+                <EnemyPlayer playerNo={11}/>
+                <EnemyPlayer playerNo={12}/>
+                <EnemyPlayer playerNo={13}/>
+                <EnemyPlayer playerNo={14}/>
+                <EnemyPlayer playerNo={15}/>
+                <EnemyPlayer playerNo={16}/>
+                <EnemyPlayer playerNo={17}/>
+                <EnemyPlayer playerNo={18}/>
+                <EnemyPlayer playerNo={19}/> */}
                 {/* <EnemyPlayer playerNo={2}/> */}
                 </Players>
             </InnerWrapper>
