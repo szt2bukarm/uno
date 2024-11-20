@@ -33,11 +33,11 @@ const Text = styled.p`
     color: #fff;
     font-family: sans-serif;
     font-weight: 600;
-    letter-spacing: -10px;
+    letter-spacing: -1rem;
 `
 
 function YourTurn() {
-    const { playedCards,currentPlayer,playerNo } = useStore();
+    const { blockedPlayerID,playedCards,currentPlayer,playerNo } = useStore();
     const wrapperRef = useRef(null);
     const textRef = useRef(null);
 
@@ -75,7 +75,7 @@ function YourTurn() {
 
     return (
         <Wrapper ref={wrapperRef}>
-            <Text ref={textRef} style={{textShadow: `0px 0px 50px ${colors[playedCards[Object.values(playedCards).length - 1]?.type]}`}}>YOUR TURN</Text>
+            <Text ref={textRef} style={{textShadow: `0px 0px 5rem ${colors[playedCards[Object.values(playedCards).length - 1]?.type]}`}}>{blockedPlayerID == playerNo ? "BLOCKED" : "YOUR TURN"}</Text>
         </Wrapper>
     )
 }

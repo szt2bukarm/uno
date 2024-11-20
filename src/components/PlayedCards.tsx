@@ -22,7 +22,7 @@ const Wrapper = styled.div`
 `;
 
 function PlayedCards() {
-    const { playedCards } = useStore();
+    const { playedCards,showColorChanger } = useStore();
     const cardsRef = useRef<HTMLDivElement[]>([]);
     const [newMatch, setNewMatch] = useState(true);
 
@@ -59,9 +59,10 @@ function PlayedCards() {
 
             gsap.set(lastPlayedCard, {
                 css: {
-                    filter: `drop-shadow(0px 0px 30px rgba(0, 0, 0))`,
+                    filter: `drop-shadow(0px 0px 3rem rgba(0, 0, 0))`,
                 },
             });
+            
 
             gsap.to(lastPlayedCard, {
                 duration: 0.7,
@@ -84,7 +85,7 @@ function PlayedCards() {
             });
             gsap.to(lastPlayedCard, {
                 css: {
-                    filter: `drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.3))`,
+                    filter: `drop-shadow(0px 0px 1rem rgba(0, 0, 0, 0.3))`,
                 },
             });
         }
@@ -92,7 +93,7 @@ function PlayedCards() {
 
 
     return (
-        <Wrapper>
+        <Wrapper style={{zIndex: showColorChanger ? 0 : 10}}>
             {Object.values(playedCards).length > 0 &&
                 Object.values(playedCards).map((c, i) => (
                     <Card

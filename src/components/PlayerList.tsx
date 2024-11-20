@@ -8,32 +8,32 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 10px;
+    gap: 1rem;
     top: 50%;
     left: 0;
     transform: translateY(-50%);
-    width: 300px;
-    padding-block: 15px;
+    width: 30rem;
+    padding-block: 1.5rem;
     background: linear-gradient(to right, #000000c3, transparent);
     z-index: 9;
 `
 
 const Title = styled.p`
-    font-size: 24px;
+    font-size: 2.4rem;
     font-weight: bold;
     color: #fff;
-    padding-left: 20px;
+    padding-left: 2rem;
     font-family: sans-serif;
 `
 
 const Player = styled.div`
     position: relative;
-    font-size: 20px;
+    font-size: 2rem;
     display: flex;
-    gap: 10px;
+    gap: 1rem;
     color: #fff;
     font-family: sans-serif;
-    padding: 5px 20px;
+    padding: .5rem 2rem;
     transition: all .3s;
 `
 
@@ -41,7 +41,6 @@ const Highlight = styled.div`
     position: absolute;
     width: 100%;
     height: 100%;
-    /* left: -1000px; */
     left: 0;
     top: 0;
     z-index: -1;
@@ -58,19 +57,30 @@ const colors = {
 
 
 function PlayerList() {
-    const { currentPlayer,playerNo, numberOfPlayers,playedCards,playersCards } = useStore();
+    const { currentPlayer,playerNo, numberOfPlayers,playedCards,playersCards,playerList } = useStore();
 
     return (
         <Wrapper>
             <Title>Player List</Title>
-            {Array.from({ length: numberOfPlayers }, (_, index) => (
+            {playerList && Object.values(playerList).map((p) => {
+                return (
+                <Player key={p.id}>
+                    {playerNo == p.idx ? `${p.name} (You)` : `${p.name}`}
+                    <Highlight style={{background: currentPlayer === p.idx ? `linear-gradient(to right, ${colors[playedCards[Object.values(playedCards).length - 1]?.type]}, transparent)` : "transparent", left: currentPlayer === p.idx ? "0" : "-100rem"}}/>
+                    <GiCardRandom style={{marginLeft: "auto"}}/>
+                    <p style={{marginRight: "1rem"}}>{Object.values(playersCards[p.idx]).length}</p>
+                </Player>
+                )
+            })}
+            {!playerList && Array.from({ length: numberOfPlayers }, (_, index) => (
                 <Player key={index}>
                     {playerNo == index ? "You" : `Bot ${index > playerNo ? index : index+1}`}
-                    <Highlight style={{background: currentPlayer === index ? `linear-gradient(to right, ${colors[playedCards[Object.values(playedCards).length - 1]?.type]}, transparent)` : "transparent", left: currentPlayer === index ? "0" : "-1000px"}}/>
+                    <Highlight style={{background: currentPlayer === index ? `linear-gradient(to right, ${colors[playedCards[Object.values(playedCards).length - 1]?.type]}, transparent)` : "transparent", left: currentPlayer === index ? "0" : "-100rem"}}/>
                     <GiCardRandom style={{marginLeft: "auto"}}/>
-                    <p style={{marginRight: "10px"}}>{Object.values(playersCards[index]).length}</p>
+                    <p style={{marginRight: "1rem"}}>{Object.values(playersCards[index]).length}</p>
                 </Player>
-            ))}
+            ))
+        }
         </Wrapper>
     )
 }

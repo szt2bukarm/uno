@@ -1,15 +1,21 @@
 import React from 'react'
 import CardDeck from './components/cardDeck'
 import Match from './Match'
+import Menu from './Menu'
+import useStore from './store'
+import Transition from './components/Transition'
 
 
-interface Props {}
+function App() {
+  const {gameStarted} = useStore();
 
-function App(props: Props) {
-  const {} = props
 
   return (
-    <Match />
+    <>
+    <Transition />
+    {gameStarted ? <Match /> : <Menu />}
+    </>
+
   )
 }
 

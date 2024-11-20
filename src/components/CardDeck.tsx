@@ -4,8 +4,10 @@ import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import styled from 'styled-components'
 import useStore from '../store.js'
-import Plus4Confirm from './Plus4Confirm.js'
 import useNextPlayer from '../utils/useNextPlayer.js'
+import ColorSwitcher from './ColorSwitcher.js'
+import EndRound from './EndRound.js'
+import {socket, cardPlayedOnline,changePlayerOnline,attackOnline, blockOnline} from '../socket.js'
 gsap.registerPlugin(MotionPathPlugin);
 
 const Wrapper = styled.div`
@@ -29,43 +31,30 @@ const CardWrapper = styled.div`
     /* width: 100vw;
     height: 100vh; */
     position: absolute;
-    bottom: 20px;
+    bottom: 2rem;
     left: 0;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 1rem;
     z-index: 2;
 `
-
-
-
-
 
 function CardDeck() {
     const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const [cardPlayed,setCardPlayed] = useState(false)
+    const [blockCards,setBlockCards] = useState(false)
+    const [showEndRoundColorMatch,setShowEndRoundColorMatch] = useState(false)
+    const [showEndRoundAttack,setShowEndRoundAttack] = useState(false)
+    const [showEndRoundPullMatch,setShowEndRoundPullMatch] = useState(false)
     const [startX,setStartX] = useState(0)
+    const [localAttackAmount,setLocalAttackAmount] = useState(0);
     const [isDragging,setIsDragging] = useState(false)
-    const { setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,basicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,setPlayersCards,setShowPlus4Confirm,showPlus4Confirm,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,numberOfPlayers,currentPlayer,setCurrentPlayer } = useStore();
+    const { deck,drawCard,onlineMatch,lobbyId,playerPull,setPlayerPull,setRoundOverFlag,roundOverFlag,showColorChanger,setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
     const getNextPlayer = useNextPlayer();
-
-
-    // useEffect(() => {
-    //     const handleKeyDown = (e: KeyboardEvent) => {
-    //       if (e.code === 'Space') {
-    //         setExpandCards(!expandCards); 
-    //       }
-    //     };
-    
-    //     window.addEventListener('keydown', handleKeyDown);
-    
-    //     return () => {
-    //       window.removeEventListener('keydown', handleKeyDown);
-    //     };
-    //   }, [expandCards]);
     
       useEffect(() => {
         cardsRef.current = cardsRef.current.filter((card) => card !== null);
@@ -86,15 +75,15 @@ function CardDeck() {
               const base = Math.ceil(0 - cardsRef.current.length / 2);
               gsap.to(c, {
                 rotate: `${(base + i) * 5}deg`,
-                y: Math.abs(base + i) * 20 + 100,
-                x: (base + i) * -50 + (cardsRef.current.length % 2 == 0 ? -30 : 0),
+                y: `${Math.abs(base + i) * 2 + 10}rem`,
+                x: `${(base + i) * -5 + (cardsRef.current.length % 2 == 0 ? -3 : 0)}rem`,
                 duration: 0.5,
                 ease: 'circ.inOut',
               });
             });
             gsap.to(cardsRef.current, {
               css: {
-                filter: `drop-shadow(0px 0px 30px rgb(0, 0, 0))`,
+                filter: `drop-shadow(0px 0px 3rem rgb(0, 0, 0))`,
               },
               duration: 0.5,
             })
@@ -109,7 +98,7 @@ function CardDeck() {
               });
               gsap.to(cardsRef.current, {
                 css: {
-                  filter: `drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.38))`,
+                  filter: `drop-shadow(0px 0px 1rem rgba(0, 0, 0, 0.38))`,
                 },
                 duration: 0.5,
               })
@@ -118,188 +107,234 @@ function CardDeck() {
         }, newMatch.current ? 800 : 0);
       }, [expandCards, playersCards]);
 
+
+      // check block
       useEffect(() => {
-        // console.log("bot")
-        // console.log(blockedPlayerID)
-        // console.log(botNo)
         if (+blockedPlayerID == +playerNo) {
-            console.log(blockedPlayerID + "blocked")
           gsap.to(cardsRef.current, {
             filter: `saturate(0)`,
-            duration: 0.5
+            duration: 0.5,
+            delay: 0.5,
           })
           gsap.to(cardsRef.current, {
             filter: `saturate(1)`,
             duration: 0.5,
-            delay: 1,
+            delay: 2,
           })
           setTimeout(() => {
               setCurrentPlayer(getNextPlayer());
               setBlockedPlayerID(-1);
-            }, 1500);
+            }, 2500);
         }
-      }, [blockedPlayerID,currentPlayer,Object.values(playersCards[playerNo]),playerNo])
+      }, [blockedPlayerID,currentPlayer,cardsRef])
 
 
+      // player's turn
       useEffect(() => {
         setTimeout(() => {
           if (currentPlayer == playerNo) {
             setExpandCards(true);
+            setLocalAttackAmount(0);
             return
           }
         }, newMatch.current ? 1300 : 0);
       },[currentPlayer])
 
-      const mouseDownHandler = (e: any) => {
-          setStartX(e.clientX);
-          setIsDragging(true);
+
+      const EndAttackRound = () => {
+        setShowEndRoundAttack(false);
+        setAttackAmount(localAttackAmount);
+        setAttackedPlayerID(getNextPlayer());
+        setExpandCards(false);
+        setRoundOverFlag(true);
+        if (onlineMatch) {
+          const nextPlayer = getNextPlayer();
+          const newCards = {...playersCards[nextPlayer]};
+          for (let i = 0; i < localAttackAmount; i++) {
+            const cardData = drawCard();
+            newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+        }    
+        attackOnline(lobbyId,newCards,deck.slice(localAttackAmount),nextPlayer,localAttackAmount)
+      }
+    }
+
+      const EndRoundColorMatch = () => {
+        setShowEndRoundColorMatch(false);
+        setExpandCards(false);
+        setRoundOverFlag(true);
       }
 
-      const mouseUpHandler = () => {
-          setIsDragging(false);
-      }
-
-      const dragHandler = (e: any) => {
-          const deltaX = e.clientX - startX;
-        if (isDragging) {
-
-            gsap.to(cardsRef.current, {
-                x: deltaX,
-            })
+      const checkCardAvailability = () => {
+        const cards = Object.values(playersCards[playerNo]);
+        const lastCard = playedCards[Object.keys(playedCards).length - 1];
+        if (!playerPull) {
+          setShowEndRoundColorMatch(true);
+          setShowEndRoundPullMatch(false);
+          return cards.some((c) => c.card === lastCard.card);
+        } else if (playerPull) {
+          setShowEndRoundPullMatch(true);
+          return cards.some((c) => c.type === lastCard.type || c.card === lastCard.card || c.type === "common");
         }
       }
 
-      const PlacePlus4 = () => {
-        const plus4card = Object.values(playersCards[playerNo]).findIndex(c => c.card === "plus4");
-        if (plus4card !== -1) {
-          const target = cardsRef.current[plus4card];
-          
-          if (target) {
-            const rect = target.getBoundingClientRect(); 
-      
-            gsap.to(target, {
-              css: {
-                filter: `drop-shadow(0px 0px 30px rgb(0, 0, 0))`,
-              },
-            });
-      
-            gsap.to(target, {
-              x: 0, 
-              y: 0,
-              scale: 1.2,
-              duration: 0.1,
-              onComplete: () => {
-                cardsRef.current = cardsRef.current.filter((c) => c !== null);
-                setPlayedCards({
-                  type: Object.values(playersCards[playerNo])[plus4card]?.type,
-                  card: Object.values(playersCards[playerNo])[plus4card]?.card,
-                  x: rect.left + rect.width / 2, 
-                  y: rect.top + rect.height / 2, 
-                });
-      
-                gsap.set(target, {
-                  x: 0,
-                  y: 0,
-                  scale: 1,
-                });
-      
-                gsap.set(target, {
-                  css: {
-                    filter: `drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.38))`,
-                  },
-                });
-      
-                const newCards = Object.values(playersCards[playerNo]).filter((_, i) => i !== plus4card);
-                editPlayersCards(playerNo,newCards);
-                setExpandCards(false);
+      const endRound = () => {
+        setRoundOverFlag(true);
+        setShowEndRoundColorMatch(false);
+        setShowEndRoundPullMatch(false);
+        setTimeout(() => {
+          setExpandCards(false);
+        }, 200);
+      }
 
-                const numberOfCards = Object.values(playersCards[playerNo]).filter(c => c.card == "plus4").length;
-                if (numberOfCards < 2) {
-                  setShowColorChanger(true);
-                  setShowPlus4Confirm(false);
-                }
-                if (numberOfCards >= 2) {
-                  setShowPlus4Confirm(true);
-                }
-              }
-            });
+      const handlePlus2 = () => {
+        const numberOfCards = Object.values(playersCards[playerNo]).filter(c => c.card == "plus2").length;
+        setShowEndRoundColorMatch(false);
+        setShowEndRoundPullMatch(false);
+        if (numberOfCards == 1) {
+          if (localAttackAmount != 0) {
+            setAttackedPlayerID(getNextPlayer());
+            setAttackAmount(localAttackAmount);
+            if (onlineMatch) {
+              const nextPlayer = getNextPlayer();
+              const newCards = {...playersCards[nextPlayer]};
+              for (let i = 0; i < localAttackAmount; i++) {
+                const cardData = drawCard();
+                newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+            }    
+            attackOnline(lobbyId,newCards,deck.slice(localAttackAmount),nextPlayer,localAttackAmount)
+            }
+            setShowEndRoundAttack(false);
+            endRound();
+            return true;
           }
+          if (onlineMatch) {
+            const nextPlayer = getNextPlayer();
+            const newCards = {...playersCards[nextPlayer]};
+            for (let i = 0; i < 2; i++) {
+              const cardData = drawCard();
+              newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+          }    
+          attackOnline(lobbyId,newCards,deck.slice(localAttackAmount),nextPlayer,localAttackAmount)
         }
-      };
+              setAttackAmount(2);
+            setAttackedPlayerID(getNextPlayer());
+            endRound();
+            return true;
+        } else {
+          if (localAttackAmount == 0) setLocalAttackAmount(2)
+          else setLocalAttackAmount((prev) => prev + 2);
+          setShowEndRoundAttack(true);
+        }
+        return true;
+      }
+
+      const handlePlus4 = () => {
+        setBasicColorChanger(false);
+        setShowColorChanger(true);
+        setShowEndRoundColorMatch(false);
+        setShowEndRoundPullMatch(false);
+        return true;
+      }
+
+      const handleBlock = () => {
+        setBlockedPlayerID(getNextPlayer());
+        if (onlineMatch) blockOnline(lobbyId,getNextPlayer());
+        setExpandCards(false);
+        setRoundOverFlag(true);
+        setShowEndRoundColorMatch(false);
+        setShowEndRoundPullMatch(false);
+        return true;
+      }
 
       const cardChecker = (type,card) => {
         const lastCard = playedCards[Object.keys(playedCards).length - 1];
-        if (card == "colorchange") {
+
+
+        if (showEndRoundPullMatch && card == "colorchange") {
           setBasicColorChanger(true);
           setShowColorChanger(true);
+          setShowEndRoundColorMatch(false);
+          setShowEndRoundPullMatch(false);
           return true;
         }
-        if (card == "plus4") {
-          const numberOfCards = Object.values(playersCards[playerNo]).filter(c => c.card == "plus4").length;
-          setBasicColorChanger(false);
-          if (numberOfCards < 2) {
-            setShowColorChanger(true);
-            setShowPlus4Confirm(false);
-            return true;
-          }
-          if (numberOfCards >= 2) {
-            setShowPlus4Confirm(true);
-            return true;
-          }
+
+        
+        if (showEndRoundPullMatch && card == "plus4") {
+          return handlePlus4();
         }
-        if (card == "block" && (lastCard?.card == "block" || lastCard?.type == type)) {
-          setCurrentPlayer(getNextPlayer());
-          setBlockedPlayerID(getNextPlayer());
+
+        if (showEndRoundPullMatch && card == "block") {
+          return handleBlock();
+        }
+
+        if (card == "block" && (lastCard?.card == "block" || lastCard?.type == type) && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
+          return handleBlock();
+        }
+
+        if (card == "colorchange" && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
+          setBasicColorChanger(true);
+          setShowColorChanger(true);
+          setShowEndRoundColorMatch(false);
+          setShowEndRoundPullMatch(false);
           return true;
         }
-        if (card == "plus2" && (lastCard?.card == "plus2" || lastCard?.type == type)) {
-          setTimeout(() => {
-            setAttackedPlayerID(getNextPlayer(1));
-            setAttackAmount(2);  
-          }, 200);
-          return true;
-        }
-        if (card == "reverse" && (lastCard?.card == "reverse" || lastCard?.type == type)) {
+
+        if (card == "reverse" && (lastCard?.card == "reverse" || lastCard?.type == type) && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
           setReversed(!reversed);
+          setShowEndRoundColorMatch(false);
+          setShowEndRoundPullMatch(false);
           return true;
         }
+
+        if (card == "plus4" && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
+          return handlePlus4();
+        }
+        
+        if (type != lastCard.type && showEndRoundPullMatch) return false;
+        if (card != lastCard.card && showEndRoundColorMatch) return false;
+        
+        if (card == "plus2" && (lastCard?.card == "plus2" || lastCard?.type == type)) {
+          return handlePlus2();
+        }
+         
+        if (localAttackAmount != 0 && lastCard?.card == "plus2" && card != "plus2") {
+          return false;
+        }
+
         if (lastCard?.type === type) {
-          setCurrentPlayer(getNextPlayer(1));
           return true;
         };
         if (lastCard?.card === card) {
-          setCurrentPlayer(getNextPlayer(1));
           return true;
         }
         if (type == "common") {
-          setCurrentPlayer(getNextPlayer(1));
           return true;
         }
         return false
       }
+
+      useEffect(() => {
+        if (roundOverFlag && currentPlayer == playerNo && setAttackedPlayerID != playerNo) {
+          setCurrentPlayer(getNextPlayer());
+          if (onlineMatch) changePlayerOnline(lobbyId,getNextPlayer());
+        }
+      },[roundOverFlag])
     
       const clickHandler = (e: React.MouseEvent) => {
-        if (currentPlayer != playerNo) return;
+        if (currentPlayer != playerNo || playerNo == blockedPlayerID || blockCards) return;
         const target = e.currentTarget;
         const index = cardsRef.current.findIndex(c => c === target);
         const check = cardChecker(Object.values(playersCards[playerNo])[index]?.type, Object.values(playersCards[playerNo])[index]?.card);
         if (!check) {
           gsap.to(target, {
             motionPath: {
-              path: [
-                { x: 0},
-                { x: -2,},
-                { x: 2},
-                { x: -2},
-                { x: 2,},
-                { x: 0},
-              ]},
+              path: [ { x: 0},{ x: -2,},{ x: 2},{ x: -2},{ x: 2,},{ x: 0}, ]},
               duration: 0.5,
             }
           )
           return;
         };
-
+        setCardPlayed(true);
         const clientX = e.clientX;
         const clientY = e.clientY;
         
@@ -313,7 +348,7 @@ function CardDeck() {
 
         gsap.to(target, {
           css: {
-            filter: `drop-shadow(0px 0px 30px rgb(0, 0, 0))`,
+            filter: `drop-shadow(0px 0px 3rem rgb(0, 0, 0))`,
           },
         })
 
@@ -323,43 +358,96 @@ function CardDeck() {
           scale: 1.2,
           duration: 0.1,
             onComplete: () => {
-            cardsRef.current.filter((c, i) => c !== null);
-            setPlayedCards({
-              type: Object.values(playersCards[playerNo])[index]?.type,
-              card: Object.values(playersCards[playerNo])[index]?.card,
-              x: clientX,
-              y: clientY,
-            });
+              cardsRef.current.filter((c, i) => c !== null);
+              const card = Object.values(playersCards[playerNo])[index];
+              setPlayerPull(false);
+              setPlayedCards({
+                type: card?.type,
+                card: card?.card,
+                x: clientX,
+                y: clientY,
+              });
 
-            gsap.set(target, {
-              x: 0,
-              y: 0,
-              scale: 1,
-            })
-            gsap.set(target, {
-              css: {
-                filter: `drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.38))`,
-              }
-            })
-            
-            const newCards = Object.values(playersCards[playerNo]).filter((c, i) => c !== Object.values(playersCards[playerNo])[index]);
-            editPlayersCards(playerNo,newCards);
-            setExpandCards(false);
-          }
+              gsap.set(target, {
+                x: 0,
+                y: 0,
+                scale: 1,
+              })
+              gsap.set(target, {
+                css: {
+                  filter: `drop-shadow(0px 0px 1rem rgba(0, 0, 0, 0.38))`,
+                }
+              })
+              
+              const newCards = Object.values(playersCards[playerNo]).filter((c, i) => c !== Object.values(playersCards[playerNo])[index]);
+              editPlayersCards(playerNo,newCards);
+
+              if (onlineMatch) cardPlayedOnline(lobbyId,card?.type,card?.card,index,newCards,playerNo)
+            }
         });
       };
 
+      // check if a card is available, or can be played on top of another
       useEffect(() => {
-        if (currentPlayer == playerNo) setAllowCardPull(true);
+        const lastCard = playedCards[Object.keys(playedCards).length - 1];
+        if (lastCard?.card == "plus4" || (lastCard?.card == "colorchange" && lastCard?.type == "common") || lastCard.card == "plus2") return;
+        if (!cardPlayed && !playerPull) return;
+              
+        const cardAvailable = checkCardAvailability();
+        if (!cardAvailable) {
+          endRound()
+          return;
+        }
+      },[Object.values(playersCards[playerNo]).length])
+
+
+      // player blocked. Prevent player from placing cards
+      useEffect(() => {
+        if (blockedPlayerID == playerNo) {
+          setBlockCards(true);
+        }
+      }, [blockedPlayerID])
+
+      // player blocked, unblock after 3.5 seconds
+      useEffect(() => {
+        setTimeout(() => {
+          setBlockCards(false);
+          if (blockedPlayerID == playerNo) setExpandCards(false);
+        }, 3500);
+      }, [blockCards])
+
+
+      // reset state for current player to begin round
+      useEffect(() => {
+        if (currentPlayer == playerNo) {
+          setAllowCardPull(true);
+          setRoundOverFlag(false);
+          setPlayerPull(false);
+          setCardPlayed(false);
+        }
       },[currentPlayer])
         
     return (
-      <Wrapper style={{opacity: currentPlayer == playerNo ? 1 : 0.5}} ref={wrapperRef} onMouseMove={(e) => dragHandler(e)} onMouseDown={(e) => mouseDownHandler(e)} onMouseUp={() => mouseUpHandler()}>
+      <Wrapper style={{opacity: currentPlayer == playerNo ? 1 : 0.5, pointerEvents: showColorChanger ? "none" : "auto"}} ref={wrapperRef}>
           <InnerWrapper>
             <CardWrapper>
-          {Object.values(playersCards).length > 0 && Object.values(playersCards[playerNo]).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={c.type} card={c.card} ref={(el) => cardsRef.current[i] = el}/>)}
+              {Object.values(playersCards).length > 0 && Object.values(playersCards[playerNo]).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={c.type} card={c.card} ref={(el) => cardsRef.current[i] = el}/>)}
             </CardWrapper>
-            {showPlus4Confirm && <Plus4Confirm onClick={PlacePlus4}/>}
+            {(showEndRoundAttack && (cardPlayed || playerPull)) && <>
+              <EndRound onClick={() => EndAttackRound()}/>
+              <p>showEdnRoundAttack</p>
+            </>} 
+            {(showEndRoundColorMatch && (cardPlayed || playerPull)) && <>
+              <EndRound onClick={() => EndRoundColorMatch()}/>
+              <p>showEdnRoundColorMatch</p>
+              </>} 
+            {(showEndRoundPullMatch && (cardPlayed || playerPull)) && 
+              <>
+              <EndRound onClick={() => EndRoundColorMatch()}/>
+              <p>showEdnRoundPullMatch</p>
+              </>
+            }
+            {showColorChanger && <ColorSwitcher/>}
           </InnerWrapper>
       </Wrapper>
     )

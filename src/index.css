@@ -6,4 +6,23 @@
 
 body{
   overflow: hidden;
+  background-color: #000;
+}
+
+html{
+  font-size: 62.5%;
+  -webkit-text-size-adjust: none;
+  font-family: sans-serif;
+}
+
+/* @media screen and (max-width: 1200px) {
+  html{
+    font-size: 52.5%;
+  }
+} */
+
+@media screen and (max-width: 900px) {
+  html{
+    font-size: 40%;
+  }
 }

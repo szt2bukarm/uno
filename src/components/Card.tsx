@@ -5,9 +5,9 @@ import useStore from "../store";
 
 const Wrapper = styled.div`
   position: relative;
-  width: 135px;
-  height: 225px;
-  border-radius: 20px;
+  width: 13.5rem;
+  height: 22.5rem;
+  border-radius: 2rem;
   overflow: hidden;
   transition: all 0.05s;
   user-select: none;
@@ -29,7 +29,7 @@ const Front = styled.img`
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  border-radius: 20px;
+  border-radius: 2rem;
   transform: rotateY(0deg);
 `;
 
@@ -73,12 +73,12 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       });
       gsap.to(cardRef.current, {
         css: {
-          filter: `drop-shadow(${-x / 2}px ${-y / 2}px 20px rgba(0,0,0,0.7))`,
+          filter: `drop-shadow(${-x / 2}px ${-y / 2}px 2rem rgba(0,0,0,0.7))`,
         },
       });
       gsap.to(shadowRef.current, {
         css: {
-          boxShadow: `inset ${-x / 2}px ${-y / 2}px 20px rgba(0,0,0,0.3)`,
+          boxShadow: `inset ${-x / 2}px ${-y / 2}px 2rem rgba(0,0,0,0.3)`,
         },
       });
     };
@@ -90,7 +90,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       });
       gsap.to(cardRef.current, {
         css: {
-          filter: `drop-shadow(0px 0px 20px rgba(0,0,0,0.05))`,
+          filter: `drop-shadow(0px 0px 2rem rgba(0,0,0,0.05))`,
         },
       });
       gsap.to(shadowRef.current, {
@@ -104,7 +104,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         style={{
           position: absolute ? "absolute" : "relative",
-          boxShadow: absolute ? "0px 0px 20px rgba(0, 0, 0, 0.5)" : "none",
+          boxShadow: absolute ? "0px 0px 2rem rgba(0, 0, 0, 0.5)" : "none",
         }}
         ref={ref}
         onClick={onClick}
