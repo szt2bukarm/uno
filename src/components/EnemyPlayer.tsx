@@ -3,7 +3,7 @@ import useStore from "../store.js";
 import useNextPlayer from "../utils/useNextPlayer.js";
 import styled from "styled-components";
 import gsap from "gsap";
-import { socket } from '../socket.js'
+import { socket,blockOnline,cardPlayedOnline,changePlayerOnline,checkCardsOnline,attackOnline } from '../socket.js'
 
 const colors = ["red", "blue", "green", "yellow"];
 
@@ -30,16 +30,24 @@ const Card = styled.img`
 
 interface props {
   playerNo: number;
+  playerName: string;
+  isBot: boolean;
 }
 
-function EnemyPlayer({ playerNo }: props) {
+function EnemyPlayer({ playerNo,playerName, isBot }: props) {
   const {
-    attackedPlayerID,
+    setGameEndedWinner,
+    drawCard,
     lobbyId,
+    hostID,
+    playerID,
     onlineMatch,
     setRoundOverFlag,
     roundOverFlag,
     blockedPlayerID,
+    setLastCardAttack,
+    setLastCardPlayer,
+    setLastCardName,
     setBlockedPlayerID,
     setBotPull,
     botPull,
@@ -59,16 +67,28 @@ function EnemyPlayer({ playerNo }: props) {
 
   // online match
   useEffect(() => {
-    if (!onlineMatch) return
-    socket.on('cardplayednotification', (data) => {
-      if (data.player == playerNo) {
-        addCardToPlayedCardsOnline(data.cardIndex,data.playersCards,data.playedType,data.playedCard );
-      }
-    })
-    socket.on('changeplayernotification', (data) => {
-      setCurrentPlayer(data.player);
-    })
-  },[])
+    if (!onlineMatch) return;
+
+    const cardPlayedHandler = (data) => {
+        if (data.player == playerNo) {
+            addCardToPlayedCardsOnline(data.cardIndex, data.playersCards, data.playedType, data.playedCard);
+        }
+    };
+
+    const changePlayerHandler = (data) => {
+        setCurrentPlayer(data.player);
+    };
+
+    socket.on('cardplayednotification', cardPlayedHandler);
+    socket.on('changeplayernotification', changePlayerHandler);
+
+    return () => {
+        // Cleanup listeners
+        socket.off('cardplayednotification', cardPlayedHandler);
+        socket.off('changeplayernotification', changePlayerHandler);
+    };
+}, []);
+
 
   const addCardToPlayedCardsOnline = (index,newCards,type,card) => {
     const target = cardsRef.current[index];
@@ -125,23 +145,47 @@ function EnemyPlayer({ playerNo }: props) {
 
     if (card.card === "block") {
       setBlockedPlayerID(getNextPlayer());
+      if (onlineMatch && isBot) blockOnline(lobbyId,getNextPlayer());
     }
 
     if (card.card === "plus2") {
-      // setTimeout(() => {
-        setAttackedPlayerID(getNextPlayer());
-        setAttackAmount(2);
-      // }, 200);
+
+        if (!onlineMatch) {
+          setAttackedPlayerID(getNextPlayer());
+          setAttackAmount(2);  
+        }
+
+        if (onlineMatch && (hostID == playerID)) {
+          const nextPlayer = getNextPlayer();
+          const newCards = {...playersCards[nextPlayer]};
+          for (let i = 0; i < 2; i++) {
+            const cardData = drawCard();
+            newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+        }    
+        attackOnline(lobbyId,newCards,nextPlayer,2)
+        }
     }
 
     if (card.card == "plus4") {
-      // setTimeout(() => {
-        setAttackedPlayerID(getNextPlayer());
-        setAttackAmount(4);
+
+        if (!onlineMatch) {
+          setAttackedPlayerID(getNextPlayer());
+          setAttackAmount(4);  
+        }
+
         const color = colors[Math.floor(Math.random() * colors.length)];
         setType = color;
         setCard = "plus4";
-      // }, 200);
+
+        if (onlineMatch && (hostID == playerID)) {
+          const nextPlayer = getNextPlayer();
+          const newCards = {...playersCards[nextPlayer]};
+          for (let i = 0; i < 4; i++) {
+            const cardData = drawCard();
+            newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+        }    
+        attackOnline(lobbyId,newCards,nextPlayer,4)
+        }
     }
 
     setTimeout(() => {
@@ -152,14 +196,18 @@ function EnemyPlayer({ playerNo }: props) {
       const newCards = Object.values(playersCards[playerNo]).filter(
         (c) => c !== card
       );
-      editPlayersCards(playerNo, newCards);
+      // if (!onlineMatch) {
+        editPlayersCards(playerNo, newCards);
+        setPlayedCards({
+          type: setType,
+          card: setCard,
+          x: centerX,
+          y: centerY,
+        });
+      // }
+      
       setRoundOverFlag(true);
-      setPlayedCards({
-        type: setType,
-        card: setCard,
-        x: centerX,
-        y: centerY,
-      });
+      // if (onlineMatch && isBot) cardPlayedOnline(lobbyId,setType,setCard,index,newCards,playerNo)
     }, 200);
   };
 
@@ -204,26 +252,51 @@ function EnemyPlayer({ playerNo }: props) {
     return -1;
   };
 
+  useEffect(() => {
+    const checkCardsHandler = (data) => {
+      if (data.playerNo == playerNo) {
+        console.log(data.cardIndex)
+        if (data.cardIndex == -1 && !botPull) {
+          setBotPull(true);
+          return;
+        }
+
+        addCardToPlayedCards(data.cardIndex);
+      }
+    }
+    socket.on('checkcardsbotnotification', checkCardsHandler)
+    return () => {
+      socket.off('checkcardsbotnotification', checkCardsHandler)
+    }
+  },[Object.values(playersCards[playerNo])])
+
   // bot move
   const botMove = () => {
-    if (onlineMatch) return;
+    if (onlineMatch && !isBot) return;
     if (currentPlayer != playerNo) return;
-    const decision = checkCards();
-
-    // bot had no playable card and had not pulled yet. Prepare to pull
-    if (decision == -1 && !botPull) {
-      setBotPull(true);
-      return;
+    if (onlineMatch && (hostID == playerID)) {
+      checkCardsOnline(lobbyId,Object.values(playersCards[playerNo]),playedCards[Object.keys(playedCards).length - 1],playerNo);
     }
 
-    addCardToPlayedCards(decision);
+    if (!onlineMatch) {
+      const decision = checkCards();
+
+      // bot had no playable card and had not pulled yet. Prepare to pull
+      if (decision == -1 && !botPull) {
+        setBotPull(true);
+        return;
+      }
+  
+      addCardToPlayedCards(decision);
+    }
+
   };
 
   
   // bot had no playable card. Pull a card
   const [newCardAdded, setNewCardAdded] = useState(false);
   useEffect(() => {
-    if (onlineMatch) return;
+    if (onlineMatch && !isBot) return;
     if (botPull && currentPlayer == playerNo) {
       setTimeout(() => {
         setBotPull(false);
@@ -234,7 +307,7 @@ function EnemyPlayer({ playerNo }: props) {
 
   // bot had no playale card. Check if newly added card can be played
   useEffect(() => {
-    if (onlineMatch) return;
+    if (onlineMatch && !isBot) return;
     if (newCardAdded && currentPlayer == playerNo) {
       const decision = checkCards();
       setNewCardAdded(false);
@@ -252,16 +325,26 @@ function EnemyPlayer({ playerNo }: props) {
     setRoundOverFlag(false);
     setTimeout(() => {
       botMove();
-    }, 3000);
+    }, 1800);
   },[currentPlayer])
 
 
   // end round, set next player
   useEffect(() => {
-    if (onlineMatch) return;
+    if (onlineMatch && !isBot) return;
     if (roundOverFlag && currentPlayer === playerNo) {
-      setCurrentPlayer(getNextPlayer());
-    }
+      if (Object.values(playersCards[playerNo]).length == 0) {
+        setGameEndedWinner(playerName);
+      }
+      if (Object.values(playersCards[playerNo]).length == 1) {
+        setLastCardAttack(true);
+        setLastCardPlayer(playerNo);
+        setLastCardName(playerName);
+      } else {
+        if (!onlineMatch) setCurrentPlayer(getNextPlayer());
+        if (onlineMatch) changePlayerOnline(lobbyId,getNextPlayer());
+      }
+}
   }, [roundOverFlag]);
 
 
@@ -272,7 +355,7 @@ function EnemyPlayer({ playerNo }: props) {
         <Card
           ref={(el) => (cardsRef.current[i] = el)}
           key={i}
-          src={`public/cards/${card.type}/${card.card}.png`}
+          src={`public/cards/1.png`}
         />
       ))}
     </Wrapper>

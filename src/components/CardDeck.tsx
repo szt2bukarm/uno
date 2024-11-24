@@ -7,7 +7,7 @@ import useStore from '../store.js'
 import useNextPlayer from '../utils/useNextPlayer.js'
 import ColorSwitcher from './ColorSwitcher.js'
 import EndRound from './EndRound.js'
-import {socket, cardPlayedOnline,changePlayerOnline,attackOnline, blockOnline} from '../socket.js'
+import {socket, cardPlayedOnline,changePlayerOnline,attackOnline, blockOnline, lastCardOnline} from '../socket.js'
 gsap.registerPlugin(MotionPathPlugin);
 
 const Wrapper = styled.div`
@@ -45,14 +45,11 @@ function CardDeck() {
     const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [cardPlayed,setCardPlayed] = useState(false)
-    const [blockCards,setBlockCards] = useState(false)
     const [showEndRoundColorMatch,setShowEndRoundColorMatch] = useState(false)
     const [showEndRoundAttack,setShowEndRoundAttack] = useState(false)
     const [showEndRoundPullMatch,setShowEndRoundPullMatch] = useState(false)
-    const [startX,setStartX] = useState(0)
     const [localAttackAmount,setLocalAttackAmount] = useState(0);
-    const [isDragging,setIsDragging] = useState(false)
-    const { deck,drawCard,onlineMatch,lobbyId,playerPull,setPlayerPull,setRoundOverFlag,roundOverFlag,showColorChanger,setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,currentPlayer,setCurrentPlayer } = useStore();
+    const { setGameEndedWinner,blockActions,setBlockActions,playerName,lastCardAttack,setLastCardAttack,setLastCardName,setLastCardPlayer,drawCard,onlineMatch,lobbyId,playerPull,setPlayerPull,setRoundOverFlag,roundOverFlag,showColorChanger,setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
     const getNextPlayer = useNextPlayer();
     
@@ -108,6 +105,12 @@ function CardDeck() {
       }, [expandCards, playersCards]);
 
 
+      useEffect(() => {
+        socket.on('reversenotification', (data) => {
+          setReversed(data.reversed)
+        })
+      },[])
+
       // check block
       useEffect(() => {
         if (+blockedPlayerID == +playerNo) {
@@ -154,7 +157,7 @@ function CardDeck() {
             const cardData = drawCard();
             newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
         }    
-        attackOnline(lobbyId,newCards,deck.slice(localAttackAmount),nextPlayer,localAttackAmount)
+        attackOnline(lobbyId,newCards,nextPlayer,localAttackAmount)
       }
     }
 
@@ -181,9 +184,18 @@ function CardDeck() {
         setRoundOverFlag(true);
         setShowEndRoundColorMatch(false);
         setShowEndRoundPullMatch(false);
+        setShowEndRoundAttack(false);
         setTimeout(() => {
           setExpandCards(false);
         }, 200);
+      }
+
+      const handleReverse = () => {
+        setReversed(!reversed);
+        if (onlineMatch) socket.emit('reverse', lobbyId, reversed);
+        setShowEndRoundColorMatch(false);
+        setShowEndRoundPullMatch(false);
+        return true;
       }
 
       const handlePlus2 = () => {
@@ -193,36 +205,38 @@ function CardDeck() {
         if (numberOfCards == 1) {
           if (localAttackAmount != 0) {
             setAttackedPlayerID(getNextPlayer());
-            setAttackAmount(localAttackAmount);
+            setAttackAmount(localAttackAmount + 2);
+            endRound();
             if (onlineMatch) {
               const nextPlayer = getNextPlayer();
               const newCards = {...playersCards[nextPlayer]};
-              for (let i = 0; i < localAttackAmount; i++) {
+              for (let i = 0; i < localAttackAmount + 2; i++) {
                 const cardData = drawCard();
                 newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
             }    
-            attackOnline(lobbyId,newCards,deck.slice(localAttackAmount),nextPlayer,localAttackAmount)
+            attackOnline(lobbyId,newCards,nextPlayer,localAttackAmount)
             }
-            setShowEndRoundAttack(false);
-            endRound();
             return true;
-          }
-          if (onlineMatch) {
-            const nextPlayer = getNextPlayer();
-            const newCards = {...playersCards[nextPlayer]};
-            for (let i = 0; i < 2; i++) {
-              const cardData = drawCard();
-              newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
-          }    
-          attackOnline(lobbyId,newCards,deck.slice(localAttackAmount),nextPlayer,localAttackAmount)
-        }
-              setAttackAmount(2);
+            }
+            if (onlineMatch) {
+              const nextPlayer = getNextPlayer();
+              const newCards = {...playersCards[nextPlayer]};
+              for (let i = 0; i < 2; i++) {
+                const cardData = drawCard();
+                newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+            }    
+            attackOnline(lobbyId,newCards,nextPlayer,localAttackAmount)
+            }
+            setAttackAmount(2);
             setAttackedPlayerID(getNextPlayer());
             endRound();
             return true;
         } else {
-          if (localAttackAmount == 0) setLocalAttackAmount(2)
-          else setLocalAttackAmount((prev) => prev + 2);
+          if (localAttackAmount == 0) {
+            setLocalAttackAmount(2)
+          } else {
+            setLocalAttackAmount(localAttackAmount + 2);
+          }
           setShowEndRoundAttack(true);
         }
         return true;
@@ -257,15 +271,20 @@ function CardDeck() {
           setShowEndRoundPullMatch(false);
           return true;
         }
-
         
         if (showEndRoundPullMatch && card == "plus4") {
           return handlePlus4();
         }
 
-        if (showEndRoundPullMatch && card == "block") {
+        if (showEndRoundPullMatch && card == "block" && lastCard.card == "block") {
           return handleBlock();
         }
+        
+        if (showEndRoundPullMatch && card == "reverse" && lastCard.card == "reverse") {
+          return handleReverse();
+        }
+
+        if (showEndRoundPullMatch && card == lastCard?.card) return true;
 
         if (card == "block" && (lastCard?.card == "block" || lastCard?.type == type) && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
           return handleBlock();
@@ -280,10 +299,7 @@ function CardDeck() {
         }
 
         if (card == "reverse" && (lastCard?.card == "reverse" || lastCard?.type == type) && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
-          setReversed(!reversed);
-          setShowEndRoundColorMatch(false);
-          setShowEndRoundPullMatch(false);
-          return true;
+          return handleReverse();
         }
 
         if (card == "plus4" && !showEndRoundAttack && !showEndRoundPullMatch && !showEndRoundColorMatch) {
@@ -315,13 +331,25 @@ function CardDeck() {
 
       useEffect(() => {
         if (roundOverFlag && currentPlayer == playerNo && setAttackedPlayerID != playerNo) {
-          setCurrentPlayer(getNextPlayer());
-          if (onlineMatch) changePlayerOnline(lobbyId,getNextPlayer());
+          setPlayerPull(false);
+          setCardPlayed(false);
+          if (Object.values(playersCards[playerNo]).length == 0) {
+            setGameEndedWinner(playerName ? playerName : "YOU");
+          }
+          if (Object.values(playersCards[playerNo]).length == 1) {
+            if (onlineMatch) lastCardOnline(lobbyId,playerName,playerNo);
+            setLastCardAttack(true);
+            setLastCardPlayer(playerNo);
+            setLastCardName(playerName ? playerName : "You");
+          } else {
+            if (!onlineMatch) setCurrentPlayer(getNextPlayer());
+            if (onlineMatch) changePlayerOnline(lobbyId,getNextPlayer());
+          }
         }
       },[roundOverFlag])
     
       const clickHandler = (e: React.MouseEvent) => {
-        if (currentPlayer != playerNo || playerNo == blockedPlayerID || blockCards) return;
+        if (currentPlayer != playerNo || playerNo == blockedPlayerID || blockActions || lastCardAttack) return;
         const target = e.currentTarget;
         const index = cardsRef.current.findIndex(c => c === target);
         const check = cardChecker(Object.values(playersCards[playerNo])[index]?.type, Object.values(playersCards[playerNo])[index]?.card);
@@ -390,7 +418,7 @@ function CardDeck() {
       // check if a card is available, or can be played on top of another
       useEffect(() => {
         const lastCard = playedCards[Object.keys(playedCards).length - 1];
-        if (lastCard?.card == "plus4" || (lastCard?.card == "colorchange" && lastCard?.type == "common") || lastCard.card == "plus2") return;
+        if ((lastCard?.card == "plus4" || (lastCard?.card == "colorchange" && lastCard?.type == "common") || lastCard.card == "plus2" || lastCard.card == "block") && !playerPull) return;
         if (!cardPlayed && !playerPull) return;
               
         const cardAvailable = checkCardAvailability();
@@ -404,31 +432,32 @@ function CardDeck() {
       // player blocked. Prevent player from placing cards
       useEffect(() => {
         if (blockedPlayerID == playerNo) {
-          setBlockCards(true);
+          setBlockActions(true);
         }
       }, [blockedPlayerID])
 
       // player blocked, unblock after 3.5 seconds
       useEffect(() => {
         setTimeout(() => {
-          setBlockCards(false);
+          setBlockActions(false);
           if (blockedPlayerID == playerNo) setExpandCards(false);
         }, 3500);
-      }, [blockCards])
+      }, [blockActions])
 
 
       // reset state for current player to begin round
       useEffect(() => {
         if (currentPlayer == playerNo) {
           setAllowCardPull(true);
+          setShowEndRoundAttack(false);
+          setShowEndRoundColorMatch(false);
+          setShowEndRoundPullMatch(false);
           setRoundOverFlag(false);
-          setPlayerPull(false);
-          setCardPlayed(false);
         }
       },[currentPlayer])
         
     return (
-      <Wrapper style={{opacity: currentPlayer == playerNo ? 1 : 0.5, pointerEvents: showColorChanger ? "none" : "auto"}} ref={wrapperRef}>
+      <Wrapper style={{opacity: currentPlayer == playerNo ? 1 : 0.5, pointerEvents: (showColorChanger || lastCardAttack) ? "none" : "auto"}} ref={wrapperRef}>
           <InnerWrapper>
             <CardWrapper>
               {Object.values(playersCards).length > 0 && Object.values(playersCards[playerNo]).map((c,i) => <Card onClick={(e: React.MouseEvent) => clickHandler(e)} key={i} type={c.type} card={c.card} ref={(el) => cardsRef.current[i] = el}/>)}

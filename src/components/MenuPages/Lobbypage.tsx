@@ -32,7 +32,7 @@ const MenuButton = styled.button`
     justify-content: center;
     gap: 10px;
     font-size: 18px;
-    width: 200px;
+    width: 180px;
     height: 40px;
     color: #fff;
     background-color: #000;
@@ -79,26 +79,32 @@ const Player = styled.p`
 
 
 function Lobbypage() {
-    const {setOnlineMatch,playerName,setLobbyId,lobbyId,premadeLobby,setCurrentMenuPage,setPlayerNo,setPlayerList,setNumberOfPlayers,setTransition,setDeck,setPlayersCards,setPlayedCards,setCurrentPlayer} = useStore();
-    const [gameHost,setGameHost] = useState("");
-    const [playerId, setPlayerId] = useState("");
+    const {playerID,hostID,setPlayerID,setHostID,setOnlineMatch,playerName,setLobbyId,lobbyId,premadeLobby,setCurrentMenuPage,setPlayerNo,setPlayerList,setNumberOfPlayers,setTransition,setDeck,setPlayersCards,setPlayedCards,setCurrentPlayer} = useStore();
     const [connectedPlayers,setConnectedPlayers] = useState({});
+
+    const addBot = () => {
+        socket.emit('addbot', lobbyId);
+    }
+
+    const deleteBot = (botId) => {
+        socket.emit('deletebot', lobbyId,botId);
+    }
 
     const initializeLobby = async () => {
         createLobby(playerName).then(data => {
             setLobbyId(data.lobbyId)
-            setPlayerId(data.player.id)
+            setPlayerID(data.player.id)
             setConnectedPlayers(data.players)
-            setGameHost(data.host)
+            setHostID(data.host)
         })
     }
 
     const joinPremadeLobby = async () => {
         joinLobby(lobbyId,playerName).then(data => {
             setLobbyId(data.lobbyId)
-            setPlayerId(data.player.id)
+            setPlayerID(data.player.id)
             setConnectedPlayers(data.players)
-            setGameHost(data.host)
+            setHostID(data.host)
         })
     }
 
@@ -176,11 +182,20 @@ function Lobbypage() {
         </Column>
         <ConnectedPlayersWrapper>
             <MenuTextPrimary>Players: ({connectedPlayers.length}/8)</MenuTextPrimary>
-            {Object.values(connectedPlayers).map((p,i) => <Player style={{fontWeight: p.id == playerId ? 600 : 400,fontStyle: p.id == playerId ? "italic" : "normal"}} key={i}>{p.name} {gameHost == p.id ? "(Host)" : ""}</Player>)}
+            {Object.values(connectedPlayers).map((p,i) => <div style={{display: "flex", justifyContent: "space-between"}}>
+            <Player style={{fontWeight: p.id == playerID ? 600 : 400,fontStyle: p.id == playerID ? "italic" : "normal"}} key={i}>{p.name} {hostID == p.id ? "(Host)" : ""}</Player>
+                {(p.isBot && playerID == hostID) && <p onClick={() => deleteBot(p.id)} style={{fontSize: "12px", color: "red",cursor: "pointer"}}>delete</p>}
+            </div>
+            )}
         </ConnectedPlayersWrapper>
         <Column>
-            {playerId == gameHost && <MenuButton onClick={start} style={{opacity: connectedPlayers.length > 1 ? 1 : 0.5,cursor: connectedPlayers.length > 1 ? "pointer" : "not-allowed"}}>START</MenuButton>}
-            {playerId != gameHost && <MenuText>Waiting for host to start.</MenuText> }
+            {playerID == hostID && (
+                <div style={{display: "flex", gap: "10px"}}>
+                    <MenuButton onClick={start} style={{opacity: connectedPlayers.length == 1 ? 0.5 : 1,cursor: connectedPlayers.length == 1 ? "not-allowed" : "pointer"}}>Start</MenuButton>
+                    <MenuButton onClick={addBot}>Add bot</MenuButton>
+                </div>
+            )}
+            {playerID != hostID && <MenuText>Waiting for host to start.</MenuText> }
         </Column>
         </>
     )

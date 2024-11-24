@@ -14,7 +14,7 @@ export const generateFullDeck = () => {
     }
 
     for (const type of types) {
-        ["reverse", "block", "plus2"].forEach(action => {
+        ["block", "plus2","reverse"].forEach(action => {
             deck.push({ type, card: action });
             deck.push({ type, card: action });
         });

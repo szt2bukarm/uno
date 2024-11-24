@@ -1,5 +1,5 @@
     import { create } from "zustand";
-
+    import {socket,deckChangedOnline} from './socket'
     export const generateFullDeck = () => {
         const types = ["red", "blue", "green", "yellow"];
 
@@ -28,14 +28,6 @@
         return deck.sort(() => Math.random() - 0.5); 
     };
 
-    const initializePlayers = () => {
-            const playersCards = {};
-            for (let i = 0; i < state.numberOfPlayers; i++) {
-                playersCards[i] = Array.from({ length: 7 }, () => state.drawCard());
-            }
-            return { playersCards };
-    }
-
     // Zustand store
     const useStore = create((set,get) => ({
         deck: null,
@@ -56,6 +48,12 @@
         showEndRoundAttack: false,
         showEndRoundColorMatch: false,
         roundOverFlag: false,
+        lastCardAttack: false,
+        lastCardPlayer: -1,
+        lastCardName: null,
+        blockActions: false,
+        gameEnded: false,
+        gameEndedWinner: null,
 
         setDeck: (value) => set({ deck: value }),
 
@@ -67,9 +65,13 @@
 
         // online state
         onlineMatch: false,
+        playerID: null,
+        hostID: null,
         lobbyId: null,
         premadeLobby: false,
         playerList: null,
+        setPlayerID: (value) => set({ playerID: value }),
+        setHostID: (value) => set({ hostID: value }),
         setOnlineMatch: (value) => set({ onlineMatch: value }),
         setLobbyId: (value) => set({ lobbyId: value }),
         setPremadeLobby: (value) => set({ premadeLobby: value }),
@@ -93,20 +95,47 @@
         setAllowCardPull: (value) => set({ allowCardPull: value }),
         setAttackedPlayerID: (value) => set(() => ({ attackedPlayerID: value })),
         setAttackAmount: (value) => set({ attackAmount: value }),
+        setLastCardAttack: (value) => set({ lastCardAttack: value }),
+        setLastCardPlayer: (value) => set({ lastCardPlayer: value }),
+        setLastCardName: (value) => set({ lastCardName: value }),
+        setBlockActions: (value) => set({ blockActions: value }),
+        setGameEnded: (value) => set({ gameEnded: value }),
+        setGameEndedWinner: (value) => set({ gameEndedWinner: value }),
 
         drawCard: () => {
             const currentDeck = get().deck;
+            console.log(currentDeck)
+            if (currentDeck.length === 0) {
+                const deck = generateFullDeck();
+                const lastDrawnCard = deck[0];
+                const newDeck = deck.slice(1);
+
+                set({ deck: deck });
+                if (get().onlineMatch) {
+                    deckChangedOnline(get().lobbyId,newDeck)
+                }
+                return { type: lastDrawnCard.type, card: lastDrawnCard.card };
+            }
             const lastDrawnCard = currentDeck[0];
             const newDeck = currentDeck.slice(1);
-            if (newDeck.length === 0) {
-                set({ deck: generateFullDeck() });
+
+            set({ deck: newDeck });
+            if (get().onlineMatch) {
+                deckChangedOnline(get().lobbyId,newDeck)
             }
-            set({ deck: newDeck }); 
             return { type: lastDrawnCard.type, card: lastDrawnCard.card };
         },
         
         editPlayersCards: (playerID, cards) => set((state) => {
             const newCards = { ...state.playersCards, [playerID]: cards };
+
+            if (newCards[playerID].length == 0) {
+                return {
+                    playersCards: newCards,
+                    gameEnded: true,
+                };
+            }
+
             return { playersCards: newCards };
         }),
         

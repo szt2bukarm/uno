@@ -162,17 +162,20 @@ function ColorSwitcher() {
                         setCurrentPlayer(getNextPlayer());
                     }, basicColorChanger ? 0 : 200);
                 }
-                if (onlineMatch) cardPlayedOnline(lobbyId,color,basicColorChanger ? "colorchange" : "plus4",1,Object.values(playersCards[playerNo]),playerNo)
-                if (onlineMatch && !basicColorChanger) {
+
+                if (onlineMatch) {
+                    cardPlayedOnline(lobbyId,color,basicColorChanger ? "colorchange" : "plus4",0,Object.values(playersCards[playerNo]),playerNo)
+
+                    if (!basicColorChanger) {
                         const nextPlayer = getNextPlayer();
                         const newCards = {...playersCards[nextPlayer]};
                         for (let i = 0; i < 4; i++) {
-                          const cardData = drawCard();
-                          newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
-                      }    
-                      attackOnline(lobbyId,newCards,deck.slice(4),nextPlayer,4)
-                      
-                    changePlayerOnline(lobbyId,getNextPlayer());
+                            const cardData = drawCard();
+                            newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+                        }    
+                        attackOnline(lobbyId,newCards,nextPlayer,4)
+                        changePlayerOnline(lobbyId,getNextPlayer());    
+                    }
                 }
 
                 setPlayedCards({

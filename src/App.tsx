@@ -4,6 +4,7 @@ import Match from './Match'
 import Menu from './Menu'
 import useStore from './store'
 import Transition from './components/Transition'
+import EndScreen from './components/EndScreen'
 
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   return (
     <>
     <Transition />
+    <EndScreen />
     {gameStarted ? <Match /> : <Menu />}
     </>
 
