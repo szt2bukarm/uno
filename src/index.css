@@ -21,8 +21,14 @@ html{
   }
 } */
 
+@media screen and (max-width: 1200px) {
+  html{
+    font-size: 45%;
+  }
+}
+
 @media screen and (max-width: 900px) {
   html{
-    font-size: 40%;
+    font-size: 35%;
   }
 }

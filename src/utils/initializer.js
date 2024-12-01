@@ -14,7 +14,7 @@ export const generateFullDeck = () => {
     }
 
     for (const type of types) {
-        ["reverse", "block", "plus2"].forEach(action => {
+        ["block", "plus2","reverse"].forEach(action => {
             deck.push({ type, card: action });
             deck.push({ type, card: action });
         });
@@ -39,7 +39,11 @@ export const initializePlayers = (n) => {
     const deck = generateFullDeck();
     const cardsObj = {}
     for (let i = 0; i < n; i++) {
-        cardsObj[i] = Array.from({length: 7 },() => deck.pop());
+        cardsObj[i] = Array.from({length: 3 },() => {
+            const type = types[Math.floor(Math.random() * types.length)];
+            const card = "plus2";
+            return { type, card };
+        });
     }
     
     return { deck, cards: cardsObj,type,card};

@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const socket = io('http://192.168.0.122:3000', { autoConnect: false });
+const socket = io('http://10.78.52.48:3000', { autoConnect: false });
 
 const connectSocket = () => {
   socket.connect();
@@ -49,6 +49,12 @@ const startGame = (lobbyId,deck,playersCards,initialType,initailCard) => {
     })
 }
 
+const deckChangedOnline = (lobbyId,deck) => {
+    socket.emit('deckchanged', lobbyId,deck, (response) => {
+        resolve(response);
+    });
+}
+
 const cardPlayedOnline = (lobbyId,playedType,playedCard,cardIndex,playersCards,player) => {
     socket.emit('cardplayed', lobbyId,playedType,playedCard,cardIndex,playersCards,player, (response) => {
         resolve(response);
@@ -61,20 +67,14 @@ const changePlayerOnline = (lobbyId,player) => {
     });
 }
 
-const cardPulledOnline = (lobbyId,newCards,newDeck,player) => {
-    socket.emit('cardpulled', lobbyId,newCards,newDeck,player, (response) => {
+const cardPulledOnline = (lobbyId,newCards,player) => {
+    socket.emit('cardpulled', lobbyId,newCards,player, (response) => {
         resolve(response);
     });
 }
 
-const attackOnline = (lobbyId, newCards,newDeck, player, amount) => {
-    socket.emit('attack', lobbyId, newCards,newDeck, player, amount, (response) => {
-        resolve(response);
-    });
-}
-
-const attackPulledOnline = (lobbyId,newCards,newDeck,player) => {
-    socket.emit('attackpulled', lobbyId,newCards,newDeck,player, (response) => {
+const attackOnline = (lobbyId, newCards, player, amount) => {
+    socket.emit('attack', lobbyId, newCards, player, amount, (response) => {
         resolve(response);
     });
 }
@@ -85,4 +85,22 @@ const blockOnline = (lobbyId,player) => {
     });
 }
 
-export { socket, connectSocket, disconnectSocket, createLobby,checkLobby, joinLobby,leaveLobby,startGame,cardPlayedOnline,changePlayerOnline,cardPulledOnline,attackOnline,attackPulledOnline,blockOnline };
+const checkCardsOnline = (lobbyId, cards, lastPlayed, playerNo) => {
+    socket.emit('checkcardsbot', lobbyId, cards, lastPlayed, playerNo, (response) => {
+        resolve(response);
+    });
+}
+
+const lastCardOnline = (lobbyId,name,player) => {
+    socket.emit('lastcard', lobbyId,name,player, (response) => {
+        resolve(response);
+    });
+}
+
+const lastCardAttackOnline = (lobbyId,attackedPlayer,attacker) => {
+    socket.emit('lastcardattack', lobbyId,attackedPlayer,attacker, (response) => {
+        resolve(response);
+    });
+}
+
+export { socket, connectSocket, disconnectSocket, createLobby,checkLobby, joinLobby,leaveLobby,startGame,cardPlayedOnline,changePlayerOnline,cardPulledOnline,attackOnline,blockOnline,deckChangedOnline,checkCardsOnline, lastCardOnline, lastCardAttackOnline };

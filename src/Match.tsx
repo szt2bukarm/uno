@@ -10,6 +10,9 @@ import EnemyPlayer from './components/EnemyPlayerWrapper'
 import EnemyPlayerWrapper from './components/EnemyPlayerWrapper'
 import PlayerList from './components/PlayerList'
 import YourTurn from './components/YourTurn'
+import LastCard from './components/LastCard'
+import EndScreen from './components/EndScreen'
+import { socket } from './socket'
 
 const types = ["red","blue","green","yellow"]
 const cards = ["0","1","2","3","4","5","6","7","8","9"]
@@ -44,29 +47,66 @@ const colors = {
 
 
 function Match() {
-    const { setPlayedCards,numberOfPlayers, playedCards,setPlayersCards, playersCards,setDeck,playerList } = useStore();
+    const { lobbyId,onlineMatch,setCurrentPlayer,setPlayedCards,numberOfPlayers, playedCards,setPlayersCards, playersCards,setDeck,playerList } = useStore();
 
     const newGame = () => {
         const data = initializePlayers(numberOfPlayers);
+        setCurrentPlayer(0);
         setDeck(data.deck);
         setPlayersCards(data.cards);
         setPlayedCards({ type: data.type,card: data.card, x: 1, y: 1 });
     }
 
     useEffect(() => {
-        if (playerList) return;
+        if (onlineMatch) return;
         newGame();
     },[])
+
+    useEffect(() => {
+        let isUserInitiated = true;
+    
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (isUserInitiated) {
+                event.preventDefault();
+                event.returnValue = 'Game is still in progress. If you leave, the game will be cancelled for everyone.';
+            }
+        };
+    
+        const handleUnload = () => {
+            if (isUserInitiated) {
+                socket.emit('playerdisconnected', lobbyId);
+            }
+        };
+    
+        const listenToPlayerDisconnected = () => {
+            isUserInitiated = false;
+            alert('A player left and the game has been cancelled.');
+            window.location.reload();
+        };
+    
+        socket.on('playerdisconnectednotification', listenToPlayerDisconnected);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('unload', handleUnload);
+    
+        return () => {
+            socket.off('playerdisconnectednotification', listenToPlayerDisconnected);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('unload', handleUnload);
+        };
+    }, [socket, lobbyId]);
+    
+    
 
     return (
         <Wrapper style={{background: colors[playedCards[Object.values(playedCards).length - 1]?.type]}}>
             <RadialShadow />
             {Object.values(playersCards).length > 0 && <YourTurn />}
-            {Object.values(playersCards).length > 0 && <PlayerList />}
             {Object.values(playedCards).length > 0 && <PlayedCards />}
             {Object.values(playersCards).length > 0 && <CardStack />}
             {Object.values(playersCards).length > 0 && <EnemyPlayerWrapper />}
             {Object.values(playersCards).length > 0 && <CardDeck /> }
+            {Object.values(playersCards).length > 0 && <PlayerList />}
+            {Object.values(playersCards).length > 0 && <LastCard />}
             {/* <button onClick={newGame} style={{zIndex: 999}}>New Game</button> */}
         </Wrapper>
     )

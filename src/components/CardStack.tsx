@@ -5,7 +5,7 @@ import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import useStore from '../store.js'
 import cardGenerator from '../utils/Cardgenerator'
 import useNextPlayer from '../utils/useNextPlayer'
-import { socket, cardPulledOnline,attackPulledOnline } from '../socket.js'
+import { socket, cardPulledOnline,attackOnline } from '../socket.js'
 gsap.registerPlugin(MotionPathPlugin);
 
 const Wrapper = styled.div`
@@ -94,29 +94,46 @@ function CardStack() {
     const backRef = useRef<HTMLImageElement>([]);
     const stackRef = useRef<HTMLDivElement>(null);
     const attackedCardsRef = useRef<HTMLDivElement>([]);
-    const { setBlockedPlayerID,deck,setDeck,lobbyId,onlineMatch,setPlayerPull,drawCard,showColorChanger,playerNo,botPull,allowCardPull,setAllowCardPull,setAttackedPlayerID,attackedPlayerID, attackAmount,setAttackAmount, editPlayersCards, playersCards,showPlus4Confirm,currentPlayer } = useStore();
+    const { blockActions,lastCardAttack,hostID,playerID,setBlockedPlayerID,deck,setDeck,lobbyId,onlineMatch,setPlayerPull,drawCard,showColorChanger,playerNo,botPull,allowCardPull,setAllowCardPull,setAttackedPlayerID,attackedPlayerID, attackAmount,setAttackAmount, editPlayersCards, playersCards,showPlus4Confirm,currentPlayer } = useStore();
+    const getNextPlayer = useNextPlayer();
 
     useEffect(() => {
-        socket.on('blocknotification', (data) => {
-            setBlockedPlayerID(data.player);
-        })
+        const deckChangeHandler = (data) => {
+            setDeck(data.deck);
+        }
 
-        socket.on('cardpullednotification', (data) => {
-            setAttackAmount(1)
-            pullCardsForEnemy(1,data.player);
-            editPlayersCards(data.player, data.newCards)
-            setDeck(data.newDeck);
-        })
-        
-        socket.on('attacknotification', (data) => {
+        const blockNotificationHandler = (data) => {
+            setBlockedPlayerID(data.player);
+        };
+    
+        const cardPulledNotificationHandler = (data) => {
+            setAttackAmount(1);
+            pullCardsForEnemy(1, data.player);
+            editPlayersCards(data.player, data.newCards);
+        };
+    
+        const attackNotificationHandler = (data) => {
             console.log(data);
             setAttackedPlayerID(data.player);
             setAttackAmount(data.amount);
-            pullCardsForEnemy(data.amount,data.player);
-            setDeck(data.newDeck);
-            editPlayersCards(data.player, data.newCards)
-        })
-    })
+            pullCardsForEnemy(data.amount, data.player);
+            editPlayersCards(data.player, data.newCards);
+        };
+    
+        socket.on('blocknotification', blockNotificationHandler);
+        socket.on('cardpullednotification', cardPulledNotificationHandler);
+        socket.on('attacknotification', attackNotificationHandler);
+        socket.on('deckchangednotification', deckChangeHandler);
+    
+        return () => {
+            // Cleanup listeners
+            socket.off('blocknotification', blockNotificationHandler);
+            socket.off('cardpullednotification', cardPulledNotificationHandler);
+            socket.off('attacknotification', attackNotificationHandler);
+            socket.off('deckchangednotification', deckChangeHandler);
+        };
+    }, []); // Empty dependency array ensures this runs only once
+    
 
     useEffect(() => {
         gsap.set(stackRef.current, {
@@ -132,7 +149,7 @@ function CardStack() {
     }, [])
 
     const pullCard = () => {
-        if (currentPlayer != playerNo) return;
+        if (currentPlayer != playerNo || lastCardAttack || blockActions) return;
         if (!allowCardPull) return;
         const cardData = drawCard();
 
@@ -149,7 +166,7 @@ function CardStack() {
         const newCards = {...playersCards[playerNo]};
         newCards[Object.keys(playersCards[playerNo]).length] = newPulledCards[newPulledCards.length - 1];
         setTimeout(() => {
-            if (onlineMatch) cardPulledOnline(lobbyId,newCards,deck.slice(1),playerNo);
+            if (onlineMatch) cardPulledOnline(lobbyId,newCards,playerNo);
         }, 1);
         setTimeout(() => {
             gsap.to(cardsRef.current[pulledCards.length], {
@@ -256,6 +273,14 @@ function CardStack() {
             setTimeout(() => {
                 setAttackAmount(1);
                 pullCardsForEnemy(1,currentPlayer);
+                if (onlineMatch && (hostID == playerID)) {
+                    const newCards = {...playersCards[currentPlayer]};
+                    for (let i = 0; i < 1; i++) {
+                      const cardData = drawCard();
+                      newCards[Object.keys(playersCards[currentPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+                  }    
+                  attackOnline(lobbyId,newCards,currentPlayer,1)
+                  }      
             }, 500);
         }
 

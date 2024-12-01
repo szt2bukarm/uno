@@ -2,6 +2,7 @@ import React from 'react'
 import styled from 'styled-components'
 import useStore from '../store'
 import { GiCardRandom } from "react-icons/gi";
+import { FaArrowDown } from "react-icons/fa";
 
 const Wrapper = styled.div`
     position: absolute;
@@ -16,6 +17,10 @@ const Wrapper = styled.div`
     padding-block: 1.5rem;
     background: linear-gradient(to right, #000000c3, transparent);
     z-index: 9;
+
+    @media screen and (max-width: 900px) {
+        top: 20rem;
+    }
 `
 
 const Title = styled.p`
@@ -35,6 +40,7 @@ const Player = styled.div`
     font-family: sans-serif;
     padding: .5rem 2rem;
     transition: all .3s;
+    word-break: break-all;
 `
 
 const Highlight = styled.div`
@@ -55,13 +61,21 @@ const colors = {
     common: "rgb(95, 95, 95)"
 }
 
+const Arrow = styled(FaArrowDown)`
+    color: #fff;
+    font-size: 2rem;
+    transition: all .3s;
+`
 
 function PlayerList() {
-    const { currentPlayer,playerNo, numberOfPlayers,playedCards,playersCards,playerList } = useStore();
+    const { reversed,currentPlayer,playerNo, numberOfPlayers,playedCards,playersCards,playerList } = useStore();
 
     return (
         <Wrapper>
+            <div style={{display: "flex", gap: "1rem", alignItems: "center"}}>
             <Title>Player List</Title>
+            <Arrow style={{transform: reversed ? "rotate(180deg)" : "rotate(0deg)"}}/>
+            </div>
             {playerList && Object.values(playerList).map((p) => {
                 return (
                 <Player key={p.id}>

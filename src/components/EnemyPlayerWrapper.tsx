@@ -54,10 +54,10 @@ function EnemyPlayerWrapper() {
             <InnerWrapper>
             <Players style={{transform: `translateX(-${transform}rem)`}}>
                 {!onlineMatch && 
-                    [...Array(numberOfPlayers-1)].map((_,i) => <EnemyPlayer playerNo={i+1} key={i+1} />)
+                    [...Array(numberOfPlayers-1)].map((_,i) => <EnemyPlayer playerNo={i+1} playerName={`Bot ${i+1}`} isBot={true} key={i+1} />)
                 }
                 {onlineMatch && playerList.map((p) => {
-                    if (p.idx != playerNo) return <EnemyPlayer playerNo={p.idx} key={p.idx} /> 
+                    if (p.idx != playerNo) return <EnemyPlayer playerNo={p.idx} playerName={p.name} isBot={p.isBot} key={p.idx} /> 
                 })}
                 </Players>
             </InnerWrapper>

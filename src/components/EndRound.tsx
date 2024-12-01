@@ -14,22 +14,22 @@ const Wrapper = styled.div`
     justify-content: center;
     align-items: center;
     pointer-events: none;
-    z-index: 99;
+    z-index: 999;
 `
 
 const InnerWrapper = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    transform: translateY(20rem);
+    position: relative;
+    width: 100%;
+    height: 100%;
 `
 
-const Text = styled.p`
-    font-size: 2rem;
-    color: #fff;
-`
+
 
 const Button = styled.button`
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
     padding: 1rem 2rem;
     border-radius: 3rem;
     border: none;
@@ -75,7 +75,7 @@ function EndRound({ onClick }: props) {
     return (
         <Wrapper ref={wrapperRef}>
             <InnerWrapper>
-                <Button onClick={onLeave}>End Round</Button>
+                <Button onClick={onLeave}>EndRound</Button>
             </InnerWrapper>
         </Wrapper>
     )

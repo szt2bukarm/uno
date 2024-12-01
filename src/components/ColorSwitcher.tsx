@@ -92,7 +92,7 @@ function ColorSwitcher() {
     const wheelRef = useRef<HTMLDivElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [isOpen, setIsOpen] = useState(false);
-    const { drawCard,deck,lobbyId,onlineMatch,playersCards,playerNo,basicColorChanger,setBasicColorChanger,setPlayedCards,playedCards,setShowColorChanger,setCurrentPlayer,setAttackAmount,setAttackedPlayerID } = useStore();
+    const { setExpandCards,drawCard,deck,lobbyId,onlineMatch,playersCards,playerNo,basicColorChanger,setBasicColorChanger,setPlayedCards,playedCards,setShowColorChanger,setCurrentPlayer,setAttackAmount,setAttackedPlayerID } = useStore();
     const getNextPlayer = useNextPlayer();
 
     useEffect(() => {
@@ -160,19 +160,24 @@ function ColorSwitcher() {
                 if (!checkColorAvailability(color) || !basicColorChanger) {
                     setTimeout(() => {
                         setCurrentPlayer(getNextPlayer());
+                        setExpandCards(false);
+                        changePlayerOnline(lobbyId,getNextPlayer());
                     }, basicColorChanger ? 0 : 200);
                 }
-                if (onlineMatch) cardPlayedOnline(lobbyId,color,basicColorChanger ? "colorchange" : "plus4",1,Object.values(playersCards[playerNo]),playerNo)
-                if (onlineMatch && !basicColorChanger) {
+
+                if (onlineMatch) {
+                    cardPlayedOnline(lobbyId,color,basicColorChanger ? "colorchange" : "plus4",0,Object.values(playersCards[playerNo]),playerNo)
+
+                    if (!basicColorChanger) {
                         const nextPlayer = getNextPlayer();
                         const newCards = {...playersCards[nextPlayer]};
                         for (let i = 0; i < 4; i++) {
-                          const cardData = drawCard();
-                          newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
-                      }    
-                      attackOnline(lobbyId,newCards,deck.slice(4),nextPlayer,4)
-                      
-                    changePlayerOnline(lobbyId,getNextPlayer());
+                            const cardData = drawCard();
+                            newCards[Object.keys(playersCards[nextPlayer]).length + i] = { type: cardData.type, card: cardData.card };
+                        }    
+                        attackOnline(lobbyId,newCards,nextPlayer,4)
+                        changePlayerOnline(lobbyId,getNextPlayer());    
+                    }
                 }
 
                 setPlayedCards({

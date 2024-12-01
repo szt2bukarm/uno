@@ -76,7 +76,7 @@ function Onlinepage() {
 
     const joinGame = async () => {
         if (name.length != 0 && code.length != 0) {
-            const lobbyData = await checkLobby(code,name);
+            const lobbyData = await checkLobby(code.toUpperCase(),name);
             if (lobbyData.status != "success") {
                 setError(lobbyData.message)
                 return;
@@ -84,7 +84,7 @@ function Onlinepage() {
 
             setPremadeLobby(true);
             setPlayerName(name);
-            setLobbyId(code);
+            setLobbyId(code.toUpperCase());
             setCurrentMenuPage('lobby');
         }
     }
@@ -102,7 +102,7 @@ function Onlinepage() {
         <MenuText>Enter your name:</MenuText>
         <MenuInput placeholder='Name' onChange={(e) => setName(e.target.value)} value={name}/>
         <MenuText>Enter room code:</MenuText>
-        <MenuInput placeholder='Room code' onChange={(e) => setCode(e.target.value)} value={code}/>
+        <MenuInput placeholder='Room code' onChange={(e) => setCode(e.target.value)} value={code.toUpperCase()}/>
         {error.length != 0 && <MenuText>{error}</MenuText>}
         <MenuButton onClick={joinGame} style={{opacity: (name.length == 0 || code.length == 0) ? 0.5 : 1, cursor: (name.length == 0 || code.length == 0) ? 'not-allowed' : 'pointer'}}>
             <IoEnter />
