@@ -36,10 +36,7 @@ interface props {
 
 function EnemyPlayer({ playerNo,playerName, isBot }: props) {
   const {
-    attackAmount,
-    forceBotToAttack,
-    setGameEndedWinner,
-    drawCard,
+    attackedPlayerID,
     lobbyId,
     hostID,
     playerID,
@@ -341,21 +338,8 @@ function EnemyPlayer({ playerNo,playerName, isBot }: props) {
   useEffect(() => {
     if (onlineMatch && !isBot) return;
     if (roundOverFlag && currentPlayer === playerNo) {
-      if (Object.values(playersCards[playerNo]).length == 1) {
-        setLastCardAttack(true);
-        setLastCardPlayer(playerNo);
-        setLastCardName(playerName);
-      } else {
-        if (!onlineMatch) setCurrentPlayer(getNextPlayer());
-        if (onlineMatch) {
-          if (hostID == playerID && isBot) {
-            changePlayerOnline(lobbyId,getNextPlayer());
-          } else {
-            changePlayerOnline(lobbyId,getNextPlayer());
-          }
-        };
-      }
-  }
+      setCurrentPlayer(getNextPlayer());
+    }
   }, [roundOverFlag]);
 
   useEffect(() => {
@@ -372,7 +356,7 @@ function EnemyPlayer({ playerNo,playerName, isBot }: props) {
         <Card
           ref={(el) => (cardsRef.current[i] = el)}
           key={i}
-          src={`public/cards/${card.type}/${card.card}.png`}
+          src={`public/cards/1.png`}
         />
       ))}
     </Wrapper>

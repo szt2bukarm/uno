@@ -80,8 +80,8 @@ function CardDeck() {
     const [showEndRoundAttack,setShowEndRoundAttack] = useState(false)
     const [showEndRoundPullMatch,setShowEndRoundPullMatch] = useState(false)
     const [localAttackAmount,setLocalAttackAmount] = useState(0);
-    const { setGameEndedWinner,blockActions,setBlockActions,playerName,lastCardAttack,setLastCardAttack,setLastCardName,setLastCardPlayer,drawCard,onlineMatch,lobbyId,playerPull,setPlayerPull,setRoundOverFlag,roundOverFlag,showColorChanger,setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,currentPlayer,setCurrentPlayer } = useStore();
-    const [transform, setTransform] = useState(0);
+    const [isDragging,setIsDragging] = useState(false)
+    const { deck,drawCard,onlineMatch,lobbyId,playerPull,setPlayerPull,setRoundOverFlag,roundOverFlag,showColorChanger,setBlockedPlayerID,blockedPlayerID,setBasicColorChanger,setAllowCardPull,playerNo,setAttackedPlayerID,setAttackAmount,editPlayersCards,reversed,setReversed,setPlayedCards,playersCards,playedCards,expandCards,setExpandCards,setShowColorChanger,currentPlayer,setCurrentPlayer } = useStore();
     const newMatch = useRef(true);
     const [showTransform, setShowTransform] = useState(false);
     const getNextPlayer = useNextPlayer();
@@ -234,18 +234,9 @@ function CardDeck() {
         setRoundOverFlag(true);
         setShowEndRoundColorMatch(false);
         setShowEndRoundPullMatch(false);
-        setShowEndRoundAttack(false);
-        setPlayerPull(false);
         setTimeout(() => {
           setExpandCards(false);
         }, 200);
-      }
-
-      const handleReverse = () => {
-        setReversed(!reversed);
-        if (onlineMatch) socket.emit('reverse', lobbyId, reversed);
-        endRound();
-        return true;
       }
 
       const handlePlus2 = () => {
@@ -378,10 +369,7 @@ function CardDeck() {
 
       useEffect(() => {
         if (roundOverFlag && currentPlayer == playerNo && setAttackedPlayerID != playerNo) {
-          if (Object.values(playersCards[playerNo]).length == 1) return;
-          setPlayerPull(false);
-          setCardPlayed(false);
-          if (!onlineMatch) setCurrentPlayer(getNextPlayer());
+          setCurrentPlayer(getNextPlayer());
           if (onlineMatch) changePlayerOnline(lobbyId,getNextPlayer());
         }
       },[roundOverFlag])

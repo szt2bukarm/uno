@@ -10,9 +10,6 @@ import EnemyPlayer from './components/EnemyPlayerWrapper'
 import EnemyPlayerWrapper from './components/EnemyPlayerWrapper'
 import PlayerList from './components/PlayerList'
 import YourTurn from './components/YourTurn'
-import LastCard from './components/LastCard'
-import EndScreen from './components/EndScreen'
-import { socket } from './socket'
 
 const types = ["red","blue","green","yellow"]
 const cards = ["0","1","2","3","4","5","6","7","8","9"]
@@ -47,7 +44,7 @@ const colors = {
 
 
 function Match() {
-    const { lobbyId,onlineMatch,setCurrentPlayer,setPlayedCards,numberOfPlayers, playedCards,setPlayersCards, playersCards,setDeck,playerList } = useStore();
+    const { setPlayedCards,numberOfPlayers, playedCards,setPlayersCards, playersCards,setDeck,playerList } = useStore();
 
     const newGame = () => {
         const data = initializePlayers(numberOfPlayers);

@@ -182,20 +182,11 @@ function Lobbypage() {
         </Column>
         <ConnectedPlayersWrapper>
             <MenuTextPrimary>Players: ({connectedPlayers.length}/8)</MenuTextPrimary>
-            {Object.values(connectedPlayers).map((p,i) => <div style={{display: "flex", justifyContent: "space-between"}}>
-            <Player style={{fontWeight: p.id == playerID ? 600 : 400,fontStyle: p.id == playerID ? "italic" : "normal"}} key={i}>{p.name} {hostID == p.id ? "(Host)" : ""}</Player>
-            {/* {(p.isBot && playerID == hostID) && <p onClick={() => deleteBot(p.id)} style={{fontSize: "12px", color: "red",cursor: "pointer"}}>delete</p>} */}
-            </div>
-            )}
+            {Object.values(connectedPlayers).map((p,i) => <Player style={{fontWeight: p.id == playerId ? 600 : 400,fontStyle: p.id == playerId ? "italic" : "normal"}} key={i}>{p.name} {gameHost == p.id ? "(Host)" : ""}</Player>)}
         </ConnectedPlayersWrapper>
         <Column>
-            {playerID == hostID && (
-                <div style={{display: "flex", gap: "10px"}}>
-                    <MenuButton onClick={start} style={{opacity: connectedPlayers.length == 1 ? 0.5 : 1,cursor: connectedPlayers.length == 1 ? "not-allowed" : "pointer"}}>Start</MenuButton>
-                    {/* <MenuButton onClick={addBot}>Add bot</MenuButton> */}
-                </div>
-            )}
-            {playerID != hostID && <MenuText>Waiting for host to start.</MenuText> }
+            {playerId == gameHost && <MenuButton onClick={start} style={{opacity: connectedPlayers.length > 1 ? 1 : 0.5,cursor: connectedPlayers.length > 1 ? "pointer" : "not-allowed"}}>START</MenuButton>}
+            {playerId != gameHost && <MenuText>Waiting for host to start.</MenuText> }
         </Column>
         </>
     )

@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const socket = io('http://10.78.52.48:3000', { autoConnect: false });
+const socket = io('localhost:3000', { autoConnect: false });
 
 const connectSocket = () => {
   socket.connect();
